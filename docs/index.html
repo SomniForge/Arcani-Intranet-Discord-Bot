@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>Arcani Discord Bot</h1>
+<p>A modular Discord bot built with Discord.js that serves as an 'intranet' for a security company. It allows customers to request on-site security assistance through Discord.</p>
+<h2>Features</h2>
+<ul>
+<li><strong>Security Request System</strong>: Customers with the appropriate role can submit requests for on-site security</li>
+<li><strong>Alert System</strong>: Security personnel receive alerts when new requests are submitted</li>
+<li><strong>Response Tracking</strong>: Security team members can mark themselves as responding to a request</li>
+<li><strong>Request Conclusion</strong>: Requests can be concluded with a reason when they are completed</li>
+</ul>
+<h2>Setup</h2>
+<ol>
+<li>
+<p>Install dependencies:</p>
+<pre class="prettyprint source lang-bash"><code>npm install
+</code></pre>
+</li>
+<li>
+<p>Create a <code>.env</code> file in the root directory with the following variables:</p>
+<pre class="prettyprint source"><code>DISCORD_TOKEN=YOUR_BOT_TOKEN_HERE
+CLIENT_ID=YOUR_CLIENT_ID_HERE
+GUILD_ID=YOUR_TEST_GUILD_ID_HERE
+CUSTOMER_ROLE_ID=YOUR_CUSTOMER_ROLE_ID_HERE
+SECURITY_ROLE_ID=YOUR_SECURITY_ROLE_ID_HERE
+ALERT_CHANNEL_ID=YOUR_ALERT_CHANNEL_ID_HERE
+</code></pre>
+</li>
+<li>
+<p>Replace the placeholders with your actual values:</p>
+<ul>
+<li><code>DISCORD_TOKEN</code>: Your bot token obtained from the Discord Developer Portal</li>
+<li><code>CLIENT_ID</code>: Your bot's application ID</li>
+<li><code>GUILD_ID</code>: The ID of your Discord server</li>
+<li><code>CUSTOMER_ROLE_ID</code>: The role ID for customers who can request security</li>
+<li><code>SECURITY_ROLE_ID</code>: The role ID for security personnel</li>
+<li><code>ALERT_CHANNEL_ID</code>: The channel where security alerts will be posted</li>
+</ul>
+</li>
+</ol>
+<h2>Commands</h2>
+<h3>/request-security</h3>
+<p>Allows customers to request security assistance. Requires:</p>
+<ul>
+<li><strong>location</strong>: Where security assistance is needed</li>
+<li><strong>details</strong>: (Optional) Additional information about the situation</li>
+</ul>
+<h2>Running the Bot</h2>
+<ol>
+<li>
+<p>Deploy commands to your Discord server:</p>
+<pre class="prettyprint source lang-bash"><code>npm run deploy
+</code></pre>
+</li>
+<li>
+<p>Start the bot:</p>
+<pre class="prettyprint source lang-bash"><code>npm start
+</code></pre>
+</li>
+</ol>
+<h2>Development</h2>
+<h3>Project Structure</h3>
+<ul>
+<li><code>index.js</code>: Main entry point that loads commands and events</li>
+<li><code>deploy-commands.js</code>: Script to register slash commands with Discord</li>
+<li><code>commands/</code>: Contains command files</li>
+<li><code>events/</code>: Contains event handler files</li>
+</ul>
+<h3>Documentation</h3>
+<p>Generate documentation:</p>
+<pre class="prettyprint source lang-bash"><code>npm run docs
+</code></pre>
+<p>This creates HTML documentation in the <code>docs/</code> directory.</p></article>
+    </section>
+
+
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+            <span class="ancestors"><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a>~</span>deploy-commands.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description"><p>Script to register slash commands with Discord for a specific guild.
+Reads command files from the 'commands' directory and deploys them using the Discord API.
+Requires DISCORD_TOKEN, CLIENT_ID, and GUILD_ID environment variables.</p></div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="deploy-commands.js.html">deploy-commands.js</a>, <a href="deploy-commands.js.html#line8">line 8</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 18:02:06 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

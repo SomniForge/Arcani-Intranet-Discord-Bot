@@ -1,0 +1,32 @@
+{
+  "source": {
+    "include": ["arcani-bot.js", "index.js", "deploy-commands.js", "commands", "events"],
+    "includePattern": ".+\\.js(doc|x)?$",
+    "excludePattern": "(^|\\/|\\\\)_"
+  },
+  "opts": {
+    "destination": "./docs/",
+    "recurse": true,
+    "template": "node_modules/jsdoc/templates/default",
+    "readme": "./README.md"
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false,
+    "default": {
+      "outputSourceFiles": true,
+      "includeDate": true,
+      "useLongnameInNav": false,
+      "systemName": "Arcani Discord Bot",
+      "footer": "",
+      "copyright": "Copyright © 2025",
+      "navType": "vertical",
+      "theme": "cosmo",
+      "linenums": true,
+      "collapseSymbols": false,
+      "inverseNav": true,
+      "search": true
+    }
+  }
+}

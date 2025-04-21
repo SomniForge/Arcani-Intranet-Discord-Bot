@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: events/interactionCreate.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: events/interactionCreate.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file Interaction event handler
+ * @module EventHandlers/InteractionCreate
+ */
+
+const { Events, InteractionType, GuildMember, EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+
+/**
+ * @typedef {Object} Interaction
+ * @description Discord.js Interaction object
+ */
+
+/**
+ * @typedef {Object} ButtonInteraction
+ * @description Discord.js ButtonInteraction object
+ */
+
+/**
+ * @typedef {Object} ModalSubmitInteraction
+ * @description Discord.js ModalSubmitInteraction object
+ */
+
+/**
+ * @typedef {Object} GuildMember
+ * @description Discord.js GuildMember object
+ */
+
+/**
+ * @typedef {Object} CacheType
+ * @description Discord.js CacheType
+ */
+
+// --- Helper Function Definitions ---
+
+/**
+ * Handles the logic for the 'Respond' button interaction.
+ * Updates the original request embed to add the responding user.
+ * @param {ButtonInteraction} interaction The button interaction object (already deferred).
+ * @param {GuildMember} member The guild member who clicked the button.
+ * @returns {Promise&lt;void>}
+ */
+async function handleRespondButton(interaction, member) {
+    const interactionId = interaction.id; // For logging
+    console.log(`[Interaction ${interactionId}] Inside handleRespondButton for user ${member.user.tag}.`);
+    try {
+        const originalMessage = interaction.message;
+        const originalEmbed = originalMessage.embeds[0];
+
+        if (!originalEmbed) {
+            console.error(`[Interaction ${interactionId}] Could not find original embed on the message.`);
+            // Use followUp since deferred
+            return interaction.followUp({ content: 'Error processing request: Original embed not found.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending embed not found followUp:`, err));
+        }
+        console.log(`[Interaction ${interactionId}] Found original embed.`);
+
+        // Clone the embed to modify it
+        const updatedEmbed = EmbedBuilder.from(originalEmbed);
+        const respondersField = updatedEmbed.data.fields?.find(field => field.name === 'Responding Security');
+
+        if (!respondersField) {
+             console.error(`[Interaction ${interactionId}] Could not find "Responding Security" field on the embed.`);
+             return interaction.followUp({ content: 'Error processing request: Embed structure invalid.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending invalid structure followUp:`, err));
+        }
+        console.log(`[Interaction ${interactionId}] Found responders field. Current value: "${respondersField.value}"`);
+
+        let responders = respondersField.value.split('\n').filter(line => line.trim() !== '' &amp;&amp; line !== 'None yet.');
+
+        const userMention = `${member.user}`;
+        if (!responders.includes(userMention)) {
+            console.log(`[Interaction ${interactionId}] User ${member.user.tag} not found in responders. Adding.`);
+            responders.push(userMention);
+            respondersField.value = responders.join('\n');
+            console.log(`[Interaction ${interactionId}] New responders value: "${respondersField.value}"`);
+
+            console.log(`[Interaction ${interactionId}] Attempting editReply...`);
+            await interaction.editReply({ embeds: [updatedEmbed] });
+            console.log(`[Interaction ${interactionId}] editReply successful for ${member.user.tag}.`);
+
+        } else {
+            console.log(`[Interaction ${interactionId}] User ${member.user.tag} already responding.`);
+            // User is already listed, send ephemeral followUp
+            await interaction.followUp({ content: 'You are already marked as responding to this request.', flags: [64] });
+            console.log(`[Interaction ${interactionId}] Sent 'already responding' followUp.`);
+        }
+
+    } catch (error) {
+        console.error(`[Interaction ${interactionId}] Error inside handleRespondButton:`, error);
+        // Use followUp for errors after deferring
+        // Check if already replied (e.g., by the followUp above)
+        if (!interaction.replied) {
+             await interaction.followUp({ content: 'There was an error marking you as responding.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending respond button error followUp:`, err));
+        }
+    }
+}
+
+/**
+ * Handles the logic for the 'Conclude Request' button interaction.
+ * Shows a modal to the user to collect the reason for conclusion.
+ * @param {ButtonInteraction} interaction The button interaction object.
+ * @returns {Promise&lt;void>}
+ */
+async function handleConcludeButton(interaction) {
+    const interactionId = interaction.id; // For logging
+    console.log(`[Interaction ${interactionId}] Inside handleConcludeButton.`);
+    try {
+        const requestId = interaction.customId.split('_')[1]; // Extract request ID
+
+        // Create the modal
+        const modal = new ModalBuilder()
+            .setCustomId(`conclude_modal_${requestId}`) // Include request ID in modal ID
+            .setTitle('Conclude Security Request');
+
+        // Create the text input component
+        const reasonInput = new TextInputBuilder()
+            .setCustomId('conclude_reason')
+            .setLabel("Reason for concluding the request")
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder('e.g., Situation resolved, false alarm, etc.')
+            .setRequired(true);
+
+        const firstActionRow = new ActionRowBuilder().addComponents(reasonInput);
+        modal.addComponents(firstActionRow);
+
+        console.log(`[Interaction ${interactionId}] Attempting showModal...`);
+        await interaction.showModal(modal);
+        console.log(`[Interaction ${interactionId}] showModal successful.`);
+
+    } catch (error) {
+        console.error(`[Interaction ${interactionId}] Error showing conclude modal:`, error);
+        // If showModal fails, try to reply ephemerally
+        if (!interaction.replied &amp;&amp; !interaction.deferred) {
+             await interaction.reply({ content: 'There was an error trying to open the conclusion confirmation.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending conclude modal error reply:`, err));
+        } else {
+             // If somehow deferred or replied before showModal failed, use followUp
+             await interaction.followUp({ content: 'There was an error trying to open the conclusion confirmation.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending conclude modal error followUp:`, err));
+        }
+    }
+}
+
+/**
+ * Handles the submission of the 'Conclude Request' modal.
+ * Updates the original request embed to show the conclusion details and removes buttons.
+ * @param {ModalSubmitInteraction} interaction The modal submit interaction object (already deferred).
+ * @returns {Promise&lt;void>}
+ */
+async function handleConcludeModalSubmit(interaction) {
+    const interactionId = interaction.id; // For logging
+    console.log(`[Interaction ${interactionId}] Inside handleConcludeModalSubmit.`);
+    try {
+        const reason = interaction.fields.getTextInputValue('conclude_reason');
+        const securityMember = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild.members.fetch(interaction.user.id);
+        console.log(`[Interaction ${interactionId}] Modal submitted by ${securityMember.user.tag}. Reason: ${reason}`);
+
+        const originalMessage = interaction.message;
+        const originalEmbed = originalMessage.embeds[0];
+
+        if (!originalEmbed) {
+            console.error(`[Interaction ${interactionId}] Could not find original embed on the message for modal submit.`);
+            return interaction.followUp({ content: 'Error processing conclusion: Original embed not found.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending modal embed not found followUp:`, err));
+        }
+        console.log(`[Interaction ${interactionId}] Found original embed for modal submit.`);
+
+        // Clone the embed to modify it
+        const concludedEmbed = EmbedBuilder.from(originalEmbed)
+            .setTitle('✅ Security Request Concluded ✅')
+            .setColor(0x00FF00) // Green color for concluded
+            .setFields( // Use setFields to replace existing fields and add new ones cleanly
+                 ...originalEmbed.fields.filter(field => field.name !== 'Responding Security'), // Keep existing fields except responders
+                 { name: 'Responding Security', value: originalEmbed.fields.find(f => f.name === 'Responding Security')?.value || 'N/A' }, // Keep final responders list
+                 { name: 'Conclusion Reason', value: reason },
+                 { name: 'Concluded By', value: `${securityMember.user}` }
+             )
+            .setTimestamp(); // Update timestamp to conclusion time
+        console.log(`[Interaction ${interactionId}] Created concluded embed.`);
+
+        console.log(`[Interaction ${interactionId}] Attempting editReply for modal...`);
+        // Use editReply since we deferred
+        await interaction.editReply({ embeds: [concludedEmbed], components: [] });
+        console.log(`[Interaction ${interactionId}] editReply successful for modal conclusion.`);
+
+    } catch (error) {
+        console.error(`[Interaction ${interactionId}] Error handling conclude modal submit:`, error);
+        // Use followUp for errors after deferring
+        if (!interaction.replied) {
+            await interaction.followUp({ content: 'There was an error concluding the request.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending conclude modal submit error followUp:`, err));
+        }
+    }
+}
+
+// --- Main Event Export ---
+
+module.exports = {
+    name: Events.InteractionCreate,
+    /**
+     * Executes when an interaction is created.
+     * Handles slash commands, button interactions, and modal submissions for security requests.
+     * @param {Interaction} interaction The interaction object.
+     * @returns {Promise&lt;void>}
+     */
+    async execute(interaction) {
+        const interactionId = interaction.id; // For logging
+        console.log(`[Interaction ${interactionId}] Entered interactionCreate execute function. Type: ${interaction.type} (${InteractionType[interaction.type]})`); // Log type name
+
+        try { // Top-level try-catch
+            // --- Slash Command Handling ---
+            if (interaction.isChatInputCommand()) {
+                console.log(`[Interaction ${interactionId}] Handling as ChatInputCommand.`);
+                const command = interaction.client.commands.get(interaction.commandName);
+
+                if (!command) {
+                    console.error(`No command matching ${interaction.commandName} was found.`);
+                    await interaction.reply({ content: 'Error: Command not found!', ephemeral: true });
+                    return;
+                }
+
+                try {
+                    await command.execute(interaction);
+                } catch (error) {
+                    console.error(`Error executing ${interaction.commandName}`);
+                    console.error(error);
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+                    } else {
+                        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+                    }
+                }
+            }
+            // --- Button Interaction Handling ---
+            else if (interaction.isButton()) {
+                console.log(`[Interaction ${interactionId}] Identified as Button Interaction.`); // Log entry into this block
+                const customId = interaction.customId;
+                const securityRoleId = process.env.SECURITY_ROLE_ID;
+
+                console.log(`[Interaction ${interactionId}] Button Custom ID: ${customId}`);
+
+                if (!securityRoleId) {
+                    console.error(`[Interaction ${interactionId}] Error: SECURITY_ROLE_ID not set in .env`);
+                    return interaction.reply({ content: 'Bot configuration error. Please contact an administrator.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending config error reply:`, err));
+                }
+                console.log(`[Interaction ${interactionId}] Security Role ID found in env.`);
+
+                let member;
+                try {
+                    console.log(`[Interaction ${interactionId}] Attempting to fetch member...`);
+                    // Ensure the member object is fetched, especially if GuildMembers intent was just enabled
+                    member = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild.members.fetch(interaction.user.id);
+                    if (!member) {
+                         console.error(`[Interaction ${interactionId}] Failed to fetch member for user ${interaction.user.id}`);
+                         return interaction.reply({ content: 'Could not retrieve your member information.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending member fetch error reply:`, err));
+                    }
+                    console.log(`[Interaction ${interactionId}] Member fetched successfully: ${member.user.tag}`);
+
+                    console.log(`[Interaction ${interactionId}] Checking if member has role ${securityRoleId}...`);
+                    // Check if user has security role (needed for both buttons)
+                    if (!member.roles.cache.has(securityRoleId)) {
+                        console.log(`[Interaction ${interactionId}] User ${member.user.tag} lacks security role for button ${customId}.`);
+                        return interaction.reply({ content: 'You do not have permission to interact with these buttons.', flags: [64] });
+                    }
+                    console.log(`[Interaction ${interactionId}] User ${member.user.tag} has security role.`);
+
+                } catch (memberError) {
+                     console.error(`[Interaction ${interactionId}] Error during member fetch or role check:`, memberError);
+                     return interaction.reply({ content: 'An error occurred while verifying your permissions.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending permission check error reply:`, err));
+                }
+
+                // --- Respond Button Logic ---
+                if (customId.startsWith('respond_')) {
+                    console.log(`[Interaction ${interactionId}] Handling respond button.`);
+                    try {
+                        console.log(`[Interaction ${interactionId}] >>> Attempting deferUpdate...`); // Log before defer
+                        await interaction.deferUpdate();
+                        console.log(`[Interaction ${interactionId}] &lt;&lt;&lt; deferUpdate successful.`); // Log after defer
+                        await handleRespondButton(interaction, member);
+                    } catch (deferError) { // Catch errors specifically from deferUpdate or handleRespondButton
+                         console.error(`[Interaction ${interactionId}] Error during respond button defer/handle call:`, deferError);
+                         // Attempt followUp if defer succeeded but handler failed, or if defer failed but interaction still valid
+                         if (!interaction.replied) { // Check if not already replied (e.g. by a previous error handler)
+                             try {
+                                 await interaction.followUp({ content: 'An error occurred while processing your response.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending respond error followUp:`, err));
+                             } catch (followUpError) {
+                                 console.error(`[Interaction ${interactionId}] Further error trying to send followUp after defer/handle error:`, followUpError);
+                             }
+                         }
+                    }
+                }
+                // --- Conclude Button Logic ---
+                else if (customId.startsWith('conclude_')) {
+                    console.log(`[Interaction ${interactionId}] Handling conclude button (showing modal).`);
+                    await handleConcludeButton(interaction);
+                } else {
+                     console.warn(`[Interaction ${interactionId}] Unrecognized button custom ID: ${customId}`);
+                }
+            }
+            // --- Modal Submit Handling ---
+            else if (interaction.isModalSubmit()) {
+                 console.log(`[Interaction ${interactionId}] Handling as ModalSubmit.`);
+                 const customId = interaction.customId; // Get modal custom ID
+
+                 if (customId.startsWith('conclude_modal_')) {
+                     try {
+                         console.log(`[Interaction ${interactionId}] >>> Attempting deferUpdate for modal...`); // Log before defer
+                         await interaction.deferUpdate(); // Acknowledge the modal submission
+                         console.log(`[Interaction ${interactionId}] &lt;&lt;&lt; deferUpdate successful for modal.`); // Log after defer
+                         await handleConcludeModalSubmit(interaction); // Now call the handler
+                     } catch (modalDeferError) {
+                         console.error(`[Interaction ${interactionId}] Error during modal defer/handle call:`, modalDeferError);
+                         if (!interaction.replied) {
+                             try {
+                                 await interaction.followUp({ content: 'An error occurred while processing the conclusion.', flags: [64] }).catch(err => console.error(`[Interaction ${interactionId}] Error sending modal error followUp:`, err));
+                             } catch (followUpError) {
+                                 console.error(`[Interaction ${interactionId}] Further error trying to send followUp after modal defer/handle error:`, followUpError);
+                             }
+                         }
+                     }
+                 } else {
+                      console.warn(`[Interaction ${interactionId}] Unrecognized modal custom ID: ${customId}`);
+                 }
+            } else {
+                 console.warn(`[Interaction ${interactionId}] Unhandled interaction type: ${interaction.type} (${InteractionType[interaction.type]})`);
+            }
+        } catch (handlerError) {
+             console.error(`[Interaction ${interactionId}] Uncaught error in interactionCreate handler:`, handlerError);
+             // Attempt generic failure message if possible
+             try {
+                if (!interaction.replied &amp;&amp; !interaction.deferred) {
+                    await interaction.reply({ content: 'An unexpected error occurred while handling this interaction.', flags: [64] });
+                } else {
+                    await interaction.followUp({ content: 'An unexpected error occurred while handling this interaction.', flags: [64] });
+                }
+             } catch (replyError) {
+                 console.error(`[Interaction ${interactionId}] Failed to send generic error reply:`, replyError);
+             }
+        }
+    },
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 18:02:06 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

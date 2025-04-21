@@ -1,0 +1,8 @@
+# Dependencies
+/node_modules
+
+# Github copilot instructions
+/.github
+
+# Environment variables
+.env

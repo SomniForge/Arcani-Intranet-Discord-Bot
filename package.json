@@ -1,0 +1,22 @@
+{
+  "name": "arcani-discord-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "docs": "jsdoc -c jsdoc.json",
+    "deploy": "node deploy-commands.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "jsdoc": "^4.0.2"
+  }
+}

@@ -1,6 +1,9 @@
 /**
  * @file External server setup command
  * @module CommandModules/ExternalRequest
+ * @description Sets up an external (customer) Discord server to work with the Arcani Security bot.
+ * This command configures which channel can be used for security requests and registers the 
+ * server in the database, enabling cross-server security request functionality.
  */
 
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
@@ -26,6 +29,16 @@ module.exports = {
      * Configures a channel in an external server for security requests.
      * @param {Object} interaction The interaction object.
      * @returns {Promise<void>}
+     * @example
+     * // Example usage:
+     * // /setup-security-channel channel:#security-requests
+     * //
+     * // This command must be used by a server administrator in any server that wishes
+     * // to connect with Arcani Security services. Once configured, users in that server
+     * // can use the /request-external-security command in the designated channel.
+     * //
+     * // Follow-up configuration options:
+     * // - Use /set-required-roles to restrict who can submit security requests
      */
     async execute(interaction) {
         const mainGuildId = process.env.GUILD_ID;

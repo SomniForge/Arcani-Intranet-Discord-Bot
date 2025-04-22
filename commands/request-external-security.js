@@ -1,11 +1,15 @@
 /**
  * @file External security request command
  * @module CommandModules/ExternalSecurityRequest
+ * @description Allows users in external (customer) servers to request security assistance
+ * from the main Arcani Security server. This command creates a request that appears both
+ * in the external server and in the alert channel of the main security server.
  */
 
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const { ExternalServer, SecurityRequest } = require('../database/models');
 const { markServerActive } = require('../database/server-utils');
+const { getSecurityRoleId, getAlertChannelId, getServerConfig } = require('../database/server-config-utils');
 
 module.exports = {
     /**
@@ -33,15 +37,29 @@ module.exports = {
      * Allows users in external servers to send security requests to the main server.
      * @param {Object} interaction The interaction object.
      * @returns {Promise<void>}
+     * @example
+     * // Example usage:
+     * // /request-external-security location:North Building details:Suspicious activity in parking lot contact:Extension 4422
+     * // 
+     * // This creates:
+     * // 1. A confirmation message in the external server
+     * // 2. A request in the main security server with buttons for personnel to respond
+     * // 3. A database entry tracking the request status
      */
     async execute(interaction) {
+        // Get the main guild ID from the guild with primary server configuration
         const mainGuildId = process.env.GUILD_ID;
-        const alertChannelId = process.env.ALERT_CHANNEL_ID;
-        const securityRoleId = process.env.SECURITY_ROLE_ID;
+        
+        // Fetch alertChannelId and securityRoleId from the main guild's configuration
+        const alertChannelId = await getAlertChannelId(mainGuildId);
+        const securityRoleId = await getSecurityRoleId(mainGuildId);
 
         if (!mainGuildId || !alertChannelId || !securityRoleId) {
-            console.error('Error: Missing required environment variables.');
-            return interaction.reply({ content: 'Bot configuration error. Please contact Arcani Security administrators.', ephemeral: true });
+            console.error('Error: Missing required configuration in main server.');
+            return interaction.reply({ 
+                content: 'The main security server is not fully configured. Please contact Arcani Security administrators.',
+                ephemeral: true 
+            });
         }
 
         try {

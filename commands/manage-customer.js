@@ -1,9 +1,13 @@
 /**
  * @file Customer role management command
  * @module CommandModules/ManageCustomer
+ * @description Allows security personnel to manage which users have the customer role.
+ * This command provides functionality to add or remove the customer role from users
+ * in the security server, controlling who can make security requests.
  */
 
 const { SlashCommandBuilder, PermissionFlagsBits, GuildMember } = require('discord.js');
+const { getSecurityRoleId, getCustomerRoleId } = require('../database/server-config-utils');
 
 /**
  * @typedef {Object} CommandInteraction
@@ -41,14 +45,25 @@ module.exports = {
      * Allows security personnel to add or remove users from the customer role.
      * @param {CommandInteraction} interaction The interaction object.
      * @returns {Promise<void>}
+     * @example
+     * // Example usage:
+     * // /manage-customer add user:@JohnDoe
+     * // /manage-customer remove user:@JaneDoe
+     * //
+     * // This command is restricted to users with the security role.
+     * // The customer role must be configured using /config-server before this command can be used.
+     * // Users with the customer role gain the ability to create security requests.
      */
     async execute(interaction) {
-        const securityRoleId = process.env.SECURITY_ROLE_ID;
-        const customerRoleId = process.env.CUSTOMER_ROLE_ID;
+        const securityRoleId = await getSecurityRoleId(interaction.guild.id);
+        const customerRoleId = await getCustomerRoleId(interaction.guild.id);
 
         if (!securityRoleId || !customerRoleId) {
-            console.error('Error: Missing required environment variables for roles.');
-            return interaction.reply({ content: 'Bot configuration error. Please contact an administrator.', ephemeral: true });
+            console.error(`Error: Missing required configuration for server ${interaction.guild.id}.`);
+            return interaction.reply({ 
+                content: 'This server is not fully configured for role management. An administrator needs to set up the security and customer roles using the /config-server command.',
+                ephemeral: true 
+            });
         }
 
         // Ensure the member object is fetched

@@ -1,7 +1,9 @@
 /**
  * @file Configure required roles command for external servers
  * @module CommandModules/SetRequiredRoles
- * @description Allows external server admins to configure which roles can use security request commands
+ * @description Allows external server admins to configure which roles can use security request commands.
+ * This command restricts which users can submit security requests from external servers,
+ * providing an additional layer of control for server administrators.
  */
 
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
@@ -46,6 +48,17 @@ module.exports = {
      * Allows server admins to configure which roles can use security request commands.
      * @param {Object} interaction The interaction object.
      * @returns {Promise<void>}
+     * @example
+     * // Example usage:
+     * // /set-required-roles add role:@Moderator
+     * // /set-required-roles remove role:@Moderator
+     * // /set-required-roles list
+     * // /set-required-roles clear
+     * //
+     * // This command must be used by a server administrator.
+     * // The server must be set up first with /setup-security-channel.
+     * // If no roles are specified, anyone in the server can use security request commands.
+     * // When roles are added, only members with those roles can request security assistance.
      */
     async execute(interaction) {
         try {

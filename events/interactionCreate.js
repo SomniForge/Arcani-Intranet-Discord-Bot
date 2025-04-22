@@ -1,10 +1,14 @@
 /**
  * @file Interaction event handler
  * @module EventHandlers/InteractionCreate
+ * @description Central event handler for all Discord interactions, including commands, buttons, and modals.
+ * This file implements the core functionality for responding to security requests, concluding them,
+ * and handling cross-server communication for external security requests.
  */
 
 const { Events, InteractionType, GuildMember, EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { SecurityRequest, ExternalServer } = require('../database/models');
+const { getSecurityRoleId } = require('../database/server-config-utils');
 
 /**
  * @typedef {Object} Interaction
@@ -39,6 +43,11 @@ const { SecurityRequest, ExternalServer } = require('../database/models');
  * @param {ButtonInteraction} interaction The button interaction object (already deferred).
  * @param {GuildMember} member The guild member who clicked the button.
  * @returns {Promise<void>}
+ * @example
+ * // When a security team member clicks the "Respond" button on a request:
+ * // 1. Their name is added to the "Responding Security" field
+ * // 2. The embed is updated to show all current responders
+ * await handleRespondButton(interaction, member);
  */
 async function handleRespondButton(interaction, member) {
     const interactionId = interaction.id; // For logging
@@ -99,6 +108,11 @@ async function handleRespondButton(interaction, member) {
  * Shows a modal to the user to collect the reason for conclusion.
  * @param {ButtonInteraction} interaction The button interaction object.
  * @returns {Promise<void>}
+ * @example
+ * // When a security team member clicks the "Conclude Request" button:
+ * // 1. A modal dialog appears asking for the conclusion reason
+ * // 2. The security member enters details about how the situation was resolved
+ * await handleConcludeButton(interaction);
  */
 async function handleConcludeButton(interaction) {
     const interactionId = interaction.id; // For logging
@@ -143,6 +157,12 @@ async function handleConcludeButton(interaction) {
  * Updates the original request embed to show the conclusion details and removes buttons.
  * @param {ModalSubmitInteraction} interaction The modal submit interaction object (already deferred).
  * @returns {Promise<void>}
+ * @example
+ * // After a security member submits the conclusion modal:
+ * // 1. The security request is marked as concluded
+ * // 2. The embed is updated with the conclusion reason and who concluded it
+ * // 3. The action buttons are removed from the message
+ * await handleConcludeModalSubmit(interaction);
  */
 async function handleConcludeModalSubmit(interaction) {
     const interactionId = interaction.id; // For logging
@@ -196,6 +216,12 @@ async function handleConcludeModalSubmit(interaction) {
  * @param {string} requestId The ID of the original request.
  * @param {string} externalGuildId The ID of the external guild where the request originated.
  * @returns {Promise<void>}
+ * @example
+ * // When a security member responds to an external request:
+ * // 1. The security server message is updated with the responder's name
+ * // 2. The external server message is updated to show security is responding
+ * // 3. The database entry is updated to track who is responding
+ * await handleExternalRespondButton(interaction, member, '123456789012345678', '876543210987654321');
  */
 async function handleExternalRespondButton(interaction, member, requestId, externalGuildId) {
     const interactionId = interaction.id;
@@ -336,6 +362,11 @@ async function handleExternalRespondButton(interaction, member, requestId, exter
  * @param {string} requestId The ID of the original request.
  * @param {string} externalGuildId The ID of the external guild.
  * @returns {Promise<void>}
+ * @example
+ * // When a security member concludes an external request:
+ * // 1. A modal dialog appears asking for the conclusion reason
+ * // 2. The modal includes hidden fields for the request ID and external guild ID
+ * await handleExternalConcludeButton(interaction, '123456789012345678', '876543210987654321');
  */
 async function handleExternalConcludeButton(interaction, requestId, externalGuildId) {
     const interactionId = interaction.id;
@@ -376,6 +407,13 @@ async function handleExternalConcludeButton(interaction, requestId, externalGuil
  * @param {string} requestId The ID of the original request.
  * @param {string} externalGuildId The ID of the external guild.
  * @returns {Promise<void>}
+ * @example
+ * // After a security member submits the external conclusion modal:
+ * // 1. The security request is marked as concluded in the database
+ * // 2. The security server embed is updated with conclusion details
+ * // 3. The external server embed is updated to show the request was concluded
+ * // 4. Action buttons are removed from both messages
+ * await handleExternalConcludeModalSubmit(interaction, '123456789012345678', '876543210987654321');
  */
 async function handleExternalConcludeModalSubmit(interaction, requestId, externalGuildId) {
     const interactionId = interaction.id;
@@ -465,17 +503,23 @@ async function handleExternalConcludeModalSubmit(interaction, requestId, externa
                     });
                 }
                 
-                // Update the external server message
+                // Extract the original request information
                 const externalEmbed = externalMessage.embeds[0];
-                const concludedExternalEmbed = EmbedBuilder.from(externalEmbed)
+                
+                // Create a clean concluded embed with only the necessary fields
+                const concludedExternalEmbed = new EmbedBuilder()
                     .setColor(0x00FF00)
                     .setTitle('✅ Security Request Concluded ✅')
-                    .addFields(
-                        ...externalEmbed.fields.filter(field => field.name !== 'Status'),
+                    .setFields(
+                        { name: 'Location', value: request.location },
+                        { name: 'Details', value: request.details },
+                        { name: 'Contact', value: request.contact || 'Not provided' },
                         { name: 'Status', value: 'Completed' },
                         { name: 'Conclusion', value: reason },
                         { name: 'Concluded By', value: securityMember.user.tag }
-                    );
+                    )
+                    .setTimestamp()
+                    .setFooter({ text: `Request ID: ${requestId}` });
                 
                 await externalMessage.edit({ embeds: [concludedExternalEmbed] });
                 
@@ -513,6 +557,17 @@ module.exports = {
      * Handles slash commands, button interactions, and modal submissions for security requests.
      * @param {Interaction} interaction The interaction object.
      * @returns {Promise<void>}
+     * @example
+     * // This event handler processes several types of interactions:
+     * // 1. Slash commands (/request-security, /request-external-security, etc.)
+     * // 2. Button clicks (Respond, Conclude Request)
+     * // 3. Modal submissions (conclusion reasons)
+     * // 
+     * // For security request buttons, it:
+     * // - Verifies the user has the security role
+     * // - Processes internal or external security request responses
+     * // - Updates both the main security server and customer servers for external requests
+     * // - Maintains the database record of all security requests and their status
      */
     async execute(interaction) {
         const interactionId = interaction.id; // For logging
@@ -546,15 +601,17 @@ module.exports = {
             else if (interaction.isButton()) {
                 console.log(`[Interaction ${interactionId}] Identified as Button Interaction.`);
                 const customId = interaction.customId;
-                const securityRoleId = process.env.SECURITY_ROLE_ID;
+                
+                // Get the security role ID from the database for this server
+                const securityRoleId = await getSecurityRoleId(interaction.guild.id);
 
                 console.log(`[Interaction ${interactionId}] Button Custom ID: ${customId}`);
 
                 if (!securityRoleId) {
-                    console.error(`[Interaction ${interactionId}] Error: SECURITY_ROLE_ID not set in .env`);
-                    return interaction.reply({ content: 'Bot configuration error. Please contact an administrator.', flags: [64] });
+                    console.error(`[Interaction ${interactionId}] Error: Security role not configured for server ${interaction.guild.id}`);
+                    return interaction.reply({ content: 'This server is not properly configured. Please ask an administrator to set up the security role using the /config-server command.', flags: [64] });
                 }
-                console.log(`[Interaction ${interactionId}] Security Role ID found in env.`);
+                console.log(`[Interaction ${interactionId}] Security Role ID found: ${securityRoleId}`);
 
                 // Check if this is an external request button
                 if (customId.startsWith('extrespond_') || customId.startsWith('extconclude_')) {

@@ -5,6 +5,7 @@
  */
 
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, PermissionsBitField, GuildMember } = require('discord.js');
+const { getCustomerRoleId, getSecurityRoleId, getAlertChannelId } = require('../database/server-config-utils');
 
 /**
  * @typedef {Object} CommandInteraction
@@ -39,13 +40,17 @@ module.exports = {
      * @returns {Promise<void>}
      */
     async execute(interaction) {
-        const customerRoleId = process.env.CUSTOMER_ROLE_ID;
-        const securityRoleId = process.env.SECURITY_ROLE_ID;
-        const alertChannelId = process.env.ALERT_CHANNEL_ID;
+        // Fetch configuration from database
+        const customerRoleId = await getCustomerRoleId(interaction.guild.id);
+        const securityRoleId = await getSecurityRoleId(interaction.guild.id);
+        const alertChannelId = await getAlertChannelId(interaction.guild.id);
 
         if (!customerRoleId || !securityRoleId || !alertChannelId) {
-            console.error('Error: Missing required environment variables for roles or channel ID.');
-            return interaction.reply({ content: 'Bot configuration error. Please contact an administrator.', ephemeral: true });
+            console.error(`Error: Missing required configuration for server ${interaction.guild.id}.`);
+            return interaction.reply({ 
+                content: 'This server is not fully configured for security requests. An administrator needs to set up the customer role, security role, and alert channel using the /config-server command.',
+                ephemeral: true 
+            });
         }
 
         // Ensure the member object is fetched
@@ -104,7 +109,6 @@ module.exports = {
                  console.error(`Error: Bot lacks SendMessages or EmbedLinks permission in channel ${alertChannelId}.`);
                  return interaction.reply({ content: 'I do not have permission to send messages or embeds in the alert channel.', ephemeral: true });
             }
-
 
             await alertChannel.send({
                 content: `<@&${securityRoleId}> New security request!`, // Ping the security role

@@ -1,8 +1,9 @@
 /**
  * @file Utility functions for external servers
- * @module Database/Utils
+ * @module Database/Utils/ServerUtils
  * @description Provides utilities for managing external server status, including active/inactive classification
- * and automatic activity tracking based on server usage patterns.
+ * and automatic activity tracking based on server usage patterns. These utilities help maintain
+ * the connection with customer servers requesting security services.
  */
 
 const { Op } = require('sequelize');
@@ -17,6 +18,10 @@ const INACTIVITY_THRESHOLD_DAYS = 30;
 /**
  * Updates the active status of all external servers based on activity dates
  * @returns {Promise<{updated: number, active: number, inactive: number}>} Stats about the update
+ * @example
+ * // Check and update inactive servers
+ * const stats = await updateServerActiveStatus();
+ * console.log(`Updated ${stats.updated} servers - ${stats.active} active, ${stats.inactive} inactive`);
  */
 async function updateServerActiveStatus() {
     try {
@@ -68,6 +73,14 @@ async function updateServerActiveStatus() {
  * Updates a server's last accessed time to now and ensures it's marked active
  * @param {string} guildId - The Discord guild ID
  * @returns {Promise<boolean>} Whether the update was successful
+ * @example
+ * // Mark a server as active when it makes a request
+ * const success = await markServerActive('123456789012345678');
+ * if (success) {
+ *   console.log('Server activity updated successfully');
+ * } else {
+ *   console.error('Failed to update server activity');
+ * }
  */
 async function markServerActive(guildId) {
     try {

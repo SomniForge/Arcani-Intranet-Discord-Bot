@@ -1,28 +1,48 @@
 /**
  * @file Database models index
  * @module Database/Models
+ * @description Central module for database model initialization, associations, and connection
+ * management. This module initializes all database models, sets up their relationships, 
+ * and provides a unified export interface for the rest of the application.
  */
 
-const { sequelize, testConnection } = require('../config');
-const ExternalServer = require('./external-server');
-const SecurityRequest = require('./security-request');
+const { sequelize } = require('../config');
+const ExternalServerModel = require('./external-server');
+const SecurityRequestModel = require('./security-request');
+const ServerConfigModel = require('./server-config');
+
+// Initialize models with sequelize instance
+const ExternalServer = ExternalServerModel(sequelize);
+const SecurityRequest = SecurityRequestModel(sequelize);
+const ServerConfig = ServerConfigModel(sequelize);
+
+// Define associations
+SecurityRequest.belongsTo(ExternalServer, {
+    foreignKey: 'externalGuildId',
+    as: 'externalServer'
+});
 
 /**
- * Initializes all database models and their relationships
- * @returns {Promise<void>}
+ * Initializes the database connection and syncs models
+ * @returns {Promise<void>} A promise that resolves when database is initialized
+ * @example
+ * // Initialize database during application startup
+ * await initializeDatabase();
+ * console.log('Database initialized and models synchronized');
+ * 
+ * // Access models throughout the application
+ * const serverConfig = await ServerConfig.findByPk('123456789012345678');
  */
 async function initializeDatabase() {
     try {
-        // Test the connection first
-        await testConnection();
+        await sequelize.authenticate();
+        console.log('[INFO] Database connection has been established successfully.');
         
         // Sync all models with the database
-        // force: false prevents dropping tables if they already exist
-        await sequelize.sync({ force: false });
-        
-        console.log('[DATABASE] Models synchronized successfully');
+        await sequelize.sync();
+        console.log('[INFO] All models were synchronized successfully.');
     } catch (error) {
-        console.error('[DATABASE] Error initializing database:', error);
+        console.error('[ERROR] Unable to connect to the database:', error);
         throw error;
     }
 }
@@ -31,5 +51,6 @@ module.exports = {
     sequelize,
     ExternalServer,
     SecurityRequest,
+    ServerConfig,
     initializeDatabase
 };

@@ -44,13 +44,16 @@
 
     <section>
         <article><h1>Arcani Discord Bot</h1>
-<p>A modular Discord bot built with Discord.js that serves as an 'intranet' for a security company. It allows customers to request on-site security assistance through Discord.</p>
+<p>A modular Discord bot built with Discord.js that serves as an 'intranet' for a security company. It allows customers to request on-site security assistance through Discord, with cross-server functionality.</p>
 <h2>Features</h2>
 <ul>
 <li><strong>Security Request System</strong>: Customers with the appropriate role can submit requests for on-site security</li>
 <li><strong>Alert System</strong>: Security personnel receive alerts when new requests are submitted</li>
 <li><strong>Response Tracking</strong>: Security team members can mark themselves as responding to a request</li>
 <li><strong>Request Conclusion</strong>: Requests can be concluded with a reason when they are completed</li>
+<li><strong>External Server Support</strong>: Customers can add the bot to their own servers to request security</li>
+<li><strong>Role Management</strong>: Security personnel can manage customer roles</li>
+<li><strong>Persistent Database</strong>: All configurations and requests are stored in a database for reliability</li>
 </ul>
 <h2>Setup</h2>
 <ol>
@@ -67,6 +70,7 @@ GUILD_ID=YOUR_TEST_GUILD_ID_HERE
 CUSTOMER_ROLE_ID=YOUR_CUSTOMER_ROLE_ID_HERE
 SECURITY_ROLE_ID=YOUR_SECURITY_ROLE_ID_HERE
 ALERT_CHANNEL_ID=YOUR_ALERT_CHANNEL_ID_HERE
+NODE_ENV=production
 </code></pre>
 </li>
 <li>
@@ -78,20 +82,72 @@ ALERT_CHANNEL_ID=YOUR_ALERT_CHANNEL_ID_HERE
 <li><code>CUSTOMER_ROLE_ID</code>: The role ID for customers who can request security</li>
 <li><code>SECURITY_ROLE_ID</code>: The role ID for security personnel</li>
 <li><code>ALERT_CHANNEL_ID</code>: The channel where security alerts will be posted</li>
+<li><code>NODE_ENV</code>: Set to &quot;development&quot; to enable additional logging</li>
 </ul>
 </li>
 </ol>
 <h2>Commands</h2>
-<h3>/request-security</h3>
+<h3>Internal Server Commands</h3>
+<h4>/request-security</h4>
 <p>Allows customers to request security assistance. Requires:</p>
 <ul>
 <li><strong>location</strong>: Where security assistance is needed</li>
 <li><strong>details</strong>: (Optional) Additional information about the situation</li>
 </ul>
+<h4>/manage-customer</h4>
+<p>Allows security personnel to manage customer roles. Subcommands:</p>
+<ul>
+<li><strong>add</strong>: Add a user to the customer role
+<ul>
+<li><strong>user</strong>: The user to add to the customer role</li>
+</ul>
+</li>
+<li><strong>remove</strong>: Remove a user from the customer role
+<ul>
+<li><strong>user</strong>: The user to remove from the customer role</li>
+</ul>
+</li>
+</ul>
+<h4>/list-external-servers</h4>
+<p>Shows administrators a list of all external servers configured to use the bot.</p>
+<ul>
+<li><strong>show-inactive</strong>: (Optional) Whether to show inactive servers</li>
+</ul>
+<h3>External Server Commands</h3>
+<h4>/setup-security-channel</h4>
+<p>Allows administrators in external servers to configure a channel for security requests.</p>
+<ul>
+<li><strong>channel</strong>: The channel to use for security requests</li>
+</ul>
+<h4>/request-external-security</h4>
+<p>Allows users in external servers to request security assistance.</p>
+<ul>
+<li><strong>location</strong>: Where security assistance is needed</li>
+<li><strong>details</strong>: Details about the situation</li>
+<li><strong>contact</strong>: Contact information (phone, email, etc.)</li>
+</ul>
+<h2>Bot Permissions</h2>
+<p>The bot requires the following permissions in its OAuth2 invite link:</p>
+<ul>
+<li>Read Messages/View Channels</li>
+<li>Send Messages</li>
+<li>Embed Links</li>
+<li>Read Message History</li>
+<li>Add Reactions</li>
+<li>Use External Emojis</li>
+<li>Mention Everyone, Here, and All Roles</li>
+<li>Manage Roles</li>
+<li>Manage Messages</li>
+<li>Use Application Commands</li>
+</ul>
+<p>Permission Integer: <code>275146623040</code></p>
+<p>OAuth2 URL Format:</p>
+<pre class="prettyprint source"><code>https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=275146623040&scope=bot%20applications.commands
+</code></pre>
 <h2>Running the Bot</h2>
 <ol>
 <li>
-<p>Deploy commands to your Discord server:</p>
+<p>Deploy commands globally to all Discord servers:</p>
 <pre class="prettyprint source lang-bash"><code>npm run deploy
 </code></pre>
 </li>
@@ -101,6 +157,15 @@ ALERT_CHANNEL_ID=YOUR_ALERT_CHANNEL_ID_HERE
 </code></pre>
 </li>
 </ol>
+<h2>Database</h2>
+<p>The bot uses SQLite for persistent storage. The database file is located at:</p>
+<pre class="prettyprint source"><code>database/arcani_bot.sqlite
+</code></pre>
+<h3>Database Models</h3>
+<ul>
+<li><strong>ExternalServer</strong>: Stores external server configurations</li>
+<li><strong>SecurityRequest</strong>: Tracks all security requests and their status</li>
+</ul>
 <h2>Development</h2>
 <h3>Project Structure</h3>
 <ul>
@@ -108,12 +173,15 @@ ALERT_CHANNEL_ID=YOUR_ALERT_CHANNEL_ID_HERE
 <li><code>deploy-commands.js</code>: Script to register slash commands with Discord</li>
 <li><code>commands/</code>: Contains command files</li>
 <li><code>events/</code>: Contains event handler files</li>
+<li><code>database/</code>: Contains database configuration and models</li>
 </ul>
 <h3>Documentation</h3>
 <p>Generate documentation:</p>
 <pre class="prettyprint source lang-bash"><code>npm run docs
 </code></pre>
-<p>This creates HTML documentation in the <code>docs/</code> directory.</p></article>
+<p>This creates HTML documentation in the <code>docs/</code> directory.</p>
+<h2>License</h2>
+<p>See the <a href="LICENSE">LICENSE</a> file for details.</p></article>
     </section>
 
 
@@ -227,7 +295,7 @@ Optional GUILD_ID environment variable for guild-specific deployment.</p></div>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 21:37:16 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 22:10:06 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

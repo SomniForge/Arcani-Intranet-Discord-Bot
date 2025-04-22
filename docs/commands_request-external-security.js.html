@@ -29,11 +29,15 @@
             <pre class="prettyprint source linenums"><code>/**
  * @file External security request command
  * @module CommandModules/ExternalSecurityRequest
+ * @description Allows users in external (customer) servers to request security assistance
+ * from the main Arcani Security server. This command creates a request that appears both
+ * in the external server and in the alert channel of the main security server.
  */
 
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const { ExternalServer, SecurityRequest } = require('../database/models');
 const { markServerActive } = require('../database/server-utils');
+const { getSecurityRoleId, getAlertChannelId, getServerConfig } = require('../database/server-config-utils');
 
 module.exports = {
     /**
@@ -61,15 +65,29 @@ module.exports = {
      * Allows users in external servers to send security requests to the main server.
      * @param {Object} interaction The interaction object.
      * @returns {Promise&lt;void>}
+     * @example
+     * // Example usage:
+     * // /request-external-security location:North Building details:Suspicious activity in parking lot contact:Extension 4422
+     * // 
+     * // This creates:
+     * // 1. A confirmation message in the external server
+     * // 2. A request in the main security server with buttons for personnel to respond
+     * // 3. A database entry tracking the request status
      */
     async execute(interaction) {
+        // Get the main guild ID from the guild with primary server configuration
         const mainGuildId = process.env.GUILD_ID;
-        const alertChannelId = process.env.ALERT_CHANNEL_ID;
-        const securityRoleId = process.env.SECURITY_ROLE_ID;
+        
+        // Fetch alertChannelId and securityRoleId from the main guild's configuration
+        const alertChannelId = await getAlertChannelId(mainGuildId);
+        const securityRoleId = await getSecurityRoleId(mainGuildId);
 
         if (!mainGuildId || !alertChannelId || !securityRoleId) {
-            console.error('Error: Missing required environment variables.');
-            return interaction.reply({ content: 'Bot configuration error. Please contact Arcani Security administrators.', ephemeral: true });
+            console.error('Error: Missing required configuration in main server.');
+            return interaction.reply({ 
+                content: 'The main security server is not fully configured. Please contact Arcani Security administrators.',
+                ephemeral: true 
+            });
         }
 
         try {
@@ -245,13 +263,13 @@ module.exports = {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ConfigServer.html">CommandModules/ConfigServer</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 22:45:54 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 23:59:27 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

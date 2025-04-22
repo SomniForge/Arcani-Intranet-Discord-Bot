@@ -29,9 +29,13 @@
             <pre class="prettyprint source linenums"><code>/**
  * @file Customer role management command
  * @module CommandModules/ManageCustomer
+ * @description Allows security personnel to manage which users have the customer role.
+ * This command provides functionality to add or remove the customer role from users
+ * in the security server, controlling who can make security requests.
  */
 
 const { SlashCommandBuilder, PermissionFlagsBits, GuildMember } = require('discord.js');
+const { getSecurityRoleId, getCustomerRoleId } = require('../database/server-config-utils');
 
 /**
  * @typedef {Object} CommandInteraction
@@ -69,14 +73,25 @@ module.exports = {
      * Allows security personnel to add or remove users from the customer role.
      * @param {CommandInteraction} interaction The interaction object.
      * @returns {Promise&lt;void>}
+     * @example
+     * // Example usage:
+     * // /manage-customer add user:@JohnDoe
+     * // /manage-customer remove user:@JaneDoe
+     * //
+     * // This command is restricted to users with the security role.
+     * // The customer role must be configured using /config-server before this command can be used.
+     * // Users with the customer role gain the ability to create security requests.
      */
     async execute(interaction) {
-        const securityRoleId = process.env.SECURITY_ROLE_ID;
-        const customerRoleId = process.env.CUSTOMER_ROLE_ID;
+        const securityRoleId = await getSecurityRoleId(interaction.guild.id);
+        const customerRoleId = await getCustomerRoleId(interaction.guild.id);
 
         if (!securityRoleId || !customerRoleId) {
-            console.error('Error: Missing required environment variables for roles.');
-            return interaction.reply({ content: 'Bot configuration error. Please contact an administrator.', ephemeral: true });
+            console.error(`Error: Missing required configuration for server ${interaction.guild.id}.`);
+            return interaction.reply({ 
+                content: 'This server is not fully configured for role management. An administrator needs to set up the security and customer roles using the /config-server command.',
+                ephemeral: true 
+            });
         }
 
         // Ensure the member object is fetched
@@ -156,13 +171,13 @@ module.exports = {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ConfigServer.html">CommandModules/ConfigServer</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 22:45:54 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 23:59:27 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -27,12 +27,13 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>/**
- * @file External server request handler command
+ * @file External server setup command
  * @module CommandModules/ExternalRequest
  */
 
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { ExternalServer } = require('../database/models');
+const { markServerActive } = require('../database/server-utils');
 
 module.exports = {
     /**
@@ -50,72 +51,86 @@ module.exports = {
     
     /**
      * Executes the setup-security-channel command.
-     * Allows server admins to designate a channel for security requests.
+     * Configures a channel in an external server for security requests.
      * @param {Object} interaction The interaction object.
      * @returns {Promise&lt;void>}
      */
     async execute(interaction) {
         const mainGuildId = process.env.GUILD_ID;
-        const alertChannelId = process.env.ALERT_CHANNEL_ID;
-        const securityRoleId = process.env.SECURITY_ROLE_ID;
-
-        if (!mainGuildId || !alertChannelId || !securityRoleId) {
-            console.error('Error: Missing required environment variables.');
-            return interaction.reply({ content: 'Bot configuration error. Please contact Arcani Security administrators.', ephemeral: true });
-        }
-
-        const selectedChannel = interaction.options.getChannel('channel');
         
-        // Verify it's a text channel
-        if (!selectedChannel.isTextBased()) {
-            return interaction.reply({ 
-                content: 'You must select a text channel for security requests.', 
-                ephemeral: true 
-            });
-        }
-
-        // Check if bot has necessary permissions in the channel
-        const permissions = selectedChannel.permissionsFor(interaction.client.user);
-        if (!permissions.has(PermissionFlagsBits.SendMessages) || 
-            !permissions.has(PermissionFlagsBits.ViewChannel) || 
-            !permissions.has(PermissionFlagsBits.EmbedLinks)) {
-            return interaction.reply({ 
-                content: 'I need permissions to view the channel, send messages, and embed links in the selected channel.', 
-                ephemeral: true 
-            });
-        }
-
         try {
-            // Store the channel in the database
-            await ExternalServer.upsert({
-                guildId: interaction.guild.id,
-                guildName: interaction.guild.name,
-                channelId: selectedChannel.id,
-                isActive: true,
-                lastAccessed: new Date()
-            });
+            // Get the selected channel
+            const channel = interaction.options.getChannel('channel');
 
-            // Send confirmation message to the selected channel
-            const infoEmbed = new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle('Arcani Security Request Channel')
-                .setDescription('This channel has been set up to send security requests to Arcani Security.')
-                .addFields(
-                    { name: 'How to Request Security', value: 'Use the `/request-external-security` command in this channel.' }
-                )
-                .setFooter({ text: 'Arcani Security Solutions' });
+            // Verify the channel is a text channel
+            if (channel.type !== ChannelType.GuildText) {
+                return interaction.reply({ 
+                    content: 'You must select a text channel for security requests.',
+                    ephemeral: true 
+                });
+            }
 
-            await selectedChannel.send({ embeds: [infoEmbed] });
+            // Ensure bot has permission to send messages in the channel
+            try {
+                const permissions = channel.permissionsFor(interaction.client.user);
+                if (!permissions.has('SendMessages')) {
+                    return interaction.reply({ 
+                        content: 'I don\'t have permission to send messages in that channel. Please give me the appropriate permissions first.',
+                        ephemeral: true 
+                    });
+                }
+            } catch (permError) {
+                console.error('Error checking permissions:', permError);
+                return interaction.reply({ 
+                    content: 'There was an error checking my permissions for that channel. Make sure I have the necessary permissions.',
+                    ephemeral: true 
+                });
+            }
 
-            return interaction.reply({
-                content: `Successfully set up ${selectedChannel} as your security request channel. Users can now use the \`/request-external-security\` command in that channel.`,
-                ephemeral: true
-            });
+            // If this is the main security guild, don't allow this command
+            if (interaction.guild.id === mainGuildId) {
+                return interaction.reply({ 
+                    content: 'This command cannot be used in the main security server.',
+                    ephemeral: true 
+                });
+            }
+
+            // Check if this server is already registered
+            let externalServer = await ExternalServer.findByPk(interaction.guild.id);
+            
+            if (externalServer) {
+                // Update existing server entry
+                externalServer.channelId = channel.id;
+                externalServer.guildName = interaction.guild.name;
+                externalServer.isActive = true;
+                externalServer.lastAccessed = new Date();
+                await externalServer.save();
+                
+                return interaction.reply({ 
+                    content: `Security request channel updated to ${channel}. This channel will now receive security request confirmations.`,
+                    ephemeral: true 
+                });
+            } else {
+                // Create new server entry
+                externalServer = await ExternalServer.create({
+                    guildId: interaction.guild.id,
+                    guildName: interaction.guild.name,
+                    channelId: channel.id,
+                    isActive: true,
+                    lastAccessed: new Date()
+                });
+                
+                return interaction.reply({ 
+                    content: `Security request channel set to ${channel}. Your server can now use the \`/request-external-security\` command in this channel to submit security requests to Arcani Security.`,
+                    ephemeral: true 
+                });
+            }
+            
         } catch (error) {
             console.error(`Error setting up security channel: ${error}`);
-            return interaction.reply({
+            return interaction.reply({ 
                 content: `There was an error setting up the security channel: ${error.message}`,
-                ephemeral: true
+                ephemeral: true 
             });
         }
     },
@@ -129,13 +144,13 @@ module.exports = {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 22:10:06 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 22:45:54 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

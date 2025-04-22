@@ -1,6 +1,8 @@
 /**
  * @file External server model
  * @module Database/Models/ExternalServer
+ * @description Defines the database model for external Discord servers that have configured the bot,
+ * including role permission requirements and server activity tracking.
  */
 
 const { DataTypes } = require('sequelize');
@@ -53,6 +55,21 @@ const ExternalServer = sequelize.define('ExternalServer', {
     lastAccessed: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+    /**
+     * Array of role IDs that are allowed to use the bot commands
+     * @type {Array<string>}
+     */
+    allowedRoleIds: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+            const data = this.getDataValue('allowedRoleIds');
+            return data ? JSON.parse(data) : [];
+        },
+        set(value) {
+            this.setDataValue('allowedRoleIds', JSON.stringify(value));
+        }
     }
 });
 

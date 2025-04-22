@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: commands/set-required-roles.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: commands/set-required-roles.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file Configure required roles command for external servers
+ * @module CommandModules/SetRequiredRoles
+ * @description Allows external server admins to configure which roles can use security request commands
+ */
+
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { ExternalServer } = require('../database/models');
+
+module.exports = {
+    /**
+     * Command definition for /set-required-roles
+     * @type {SlashCommandBuilder}
+     */
+    data: new SlashCommandBuilder()
+        .setName('set-required-roles')
+        .setDescription('Set which roles are allowed to use security request commands')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('add')
+                .setDescription('Add a role that can use security request commands')
+                .addRoleOption(option =>
+                    option.setName('role')
+                        .setDescription('The role to add')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('Remove a role from using security request commands')
+                .addRoleOption(option =>
+                    option.setName('role')
+                        .setDescription('The role to remove')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('list')
+                .setDescription('List all roles that can use security request commands'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('clear')
+                .setDescription('Remove all role requirements (allow everyone to use commands)')),
+    
+    /**
+     * Executes the set-required-roles command.
+     * Allows server admins to configure which roles can use security request commands.
+     * @param {Object} interaction The interaction object.
+     * @returns {Promise&lt;void>}
+     */
+    async execute(interaction) {
+        try {
+            // Check if this server is registered in our database
+            const externalServer = await ExternalServer.findByPk(interaction.guild.id);
+            if (!externalServer) {
+                return interaction.reply({
+                    content: 'This server has not been set up for security requests. Please use the `/setup-security-channel` command first.',
+                    ephemeral: true
+                });
+            }
+
+            const subcommand = interaction.options.getSubcommand();
+            
+            // Get current allowed roles
+            const allowedRoleIds = externalServer.allowedRoleIds || [];
+            
+            switch (subcommand) {
+                case 'add': {
+                    const role = interaction.options.getRole('role');
+                    
+                    // Check if role is already added
+                    if (allowedRoleIds.includes(role.id)) {
+                        return interaction.reply({
+                            content: `The role ${role.name} is already authorized to use security request commands.`,
+                            ephemeral: true
+                        });
+                    }
+                    
+                    // Add the role ID to allowed roles
+                    allowedRoleIds.push(role.id);
+                    externalServer.allowedRoleIds = allowedRoleIds;
+                    await externalServer.save();
+                    
+                    return interaction.reply({
+                        content: `Added ${role.name} to the roles that can use security request commands.`,
+                        ephemeral: true
+                    });
+                }
+                
+                case 'remove': {
+                    const role = interaction.options.getRole('role');
+                    
+                    // Check if role is in the list
+                    if (!allowedRoleIds.includes(role.id)) {
+                        return interaction.reply({
+                            content: `The role ${role.name} is not in the list of authorized roles.`,
+                            ephemeral: true
+                        });
+                    }
+                    
+                    // Remove the role
+                    const updatedRoles = allowedRoleIds.filter(id => id !== role.id);
+                    externalServer.allowedRoleIds = updatedRoles;
+                    await externalServer.save();
+                    
+                    return interaction.reply({
+                        content: `Removed ${role.name} from the roles that can use security request commands.`,
+                        ephemeral: true
+                    });
+                }
+                
+                case 'list': {
+                    if (allowedRoleIds.length === 0) {
+                        // If no roles are set up, respond appropriately
+                        if (externalServer.allowedRoleIds === null || externalServer.allowedRoleIds.length === 0) {
+                            return interaction.reply({
+                                content: 'No role restrictions have been set up. Anyone in the server can use security request commands.',
+                                ephemeral: true
+                            });
+                        }
+                    }
+                    
+                    // Create an embed to display the roles
+                    const embed = new EmbedBuilder()
+                        .setColor(0x0099FF)
+                        .setTitle('Authorized Security Request Roles')
+                        .setDescription('The following roles can use security request commands:')
+                        .setTimestamp()
+                        .setFooter({ text: 'Arcani Security Solutions' });
+                    
+                    // Add fields for each role
+                    let roleListText = '';
+                    for (const roleId of allowedRoleIds) {
+                        const role = interaction.guild.roles.cache.get(roleId);
+                        if (role) {
+                            roleListText += `&lt;@&amp;${roleId}> (${role.name})\n`;
+                        } else {
+                            roleListText += `Unknown Role (ID: ${roleId})\n`;
+                        }
+                    }
+                    
+                    if (roleListText === '') {
+                        roleListText = 'No roles configured. Anyone in the server can use security request commands.';
+                    }
+                    
+                    embed.addFields({ name: 'Authorized Roles', value: roleListText });
+                    
+                    return interaction.reply({
+                        embeds: [embed],
+                        ephemeral: true
+                    });
+                }
+                
+                case 'clear': {
+                    // Clear the allowed roles
+                    externalServer.allowedRoleIds = [];
+                    await externalServer.save();
+                    
+                    return interaction.reply({
+                        content: 'All role restrictions have been cleared. Anyone in the server can now use security request commands.',
+                        ephemeral: true
+                    });
+                }
+            }
+            
+        } catch (error) {
+            console.error(`Error configuring required roles: ${error}`);
+            return interaction.reply({
+                content: `There was an error processing your request: ${error.message}`,
+                ephemeral: true
+            });
+        }
+    },
+};</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 22:45:54 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

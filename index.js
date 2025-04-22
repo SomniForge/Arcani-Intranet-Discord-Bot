@@ -1,6 +1,9 @@
 /**
  * @file Bot entry point
  * @module ArcaniBot/Core
+ * @description Main entry point for the Arcani Discord bot. Initializes the bot, 
+ * sets up command and event handlers, runs database migrations, and establishes
+ * automated server activity tracking through scheduled tasks.
  */
 
 // index.js
@@ -15,6 +18,8 @@ const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 
 // Import database
 const { initializeDatabase } = require('./database/models');
+const { runMigrations } = require('./database/migrations');
+const { updateServerActiveStatus, INACTIVITY_THRESHOLD_DAYS } = require('./database/server-utils');
 
 /**
  * Represents the main Discord client.
@@ -86,16 +91,55 @@ for (const file of eventFiles) {
     console.log(`[INFO] Loaded event ${event.name}`);
 }
 
+// --- Setup Scheduled Tasks ---
+/**
+ * Sets up recurring tasks like checking server activity
+ * @param {Client} client The Discord client
+ */
+function setupScheduledTasks(client) {
+    console.log('[INFO] Setting up scheduled tasks...');
+    
+    // Update server activity status once per day
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+    
+    async function updateServerActivity() {
+        try {
+            console.log('[INFO] Running scheduled server activity check...');
+            const stats = await updateServerActiveStatus();
+            console.log(`[INFO] Server activity update complete: ${stats.updated} servers marked inactive, ${stats.active} active, ${stats.inactive} inactive`);
+            
+            // Schedule the next run
+            setTimeout(updateServerActivity, TWENTY_FOUR_HOURS);
+        } catch (error) {
+            console.error('[ERROR] Failed to update server activity:', error);
+            // Even if it fails, try again in 24 hours
+            setTimeout(updateServerActivity, TWENTY_FOUR_HOURS);
+        }
+    }
+    
+    // Start the first check after 1 hour (give servers time to initialize)
+    const ONE_HOUR = 60 * 60 * 1000;
+    setTimeout(() => {
+        console.log(`[INFO] Initial server activity check will mark servers inactive if not used in ${INACTIVITY_THRESHOLD_DAYS} days`);
+        updateServerActivity();
+    }, ONE_HOUR);
+}
+
 // Initialize the database before logging in
 (async () => {
     try {
         await initializeDatabase();
+        await runMigrations();
         
         // Use the token from environment variables
         const token = process.env.DISCORD_TOKEN;
 
         // Log in to Discord with your client's token
-        client.login(token);
+        await client.login(token);
+        
+        // Set up scheduled tasks after login
+        setupScheduledTasks(client);
+        
     } catch (error) {
         console.error('[FATAL] Failed to initialize the bot:', error);
         process.exit(1);

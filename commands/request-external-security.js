@@ -5,6 +5,7 @@
 
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const { ExternalServer, SecurityRequest } = require('../database/models');
+const { markServerActive } = require('../database/server-utils');
 
 module.exports = {
     /**
@@ -60,10 +61,31 @@ module.exports = {
                     ephemeral: true
                 });
             }
+            
+            // Check if role requirements exist and if the user has one of the required roles
+            const allowedRoleIds = externalServer.allowedRoleIds || [];
+            if (allowedRoleIds.length > 0) {
+                const memberRoles = interaction.member.roles.cache;
+                const hasRequiredRole = memberRoles.some(role => allowedRoleIds.includes(role.id));
+                
+                if (!hasRequiredRole) {
+                    // Get the role names for a more helpful error message
+                    const roleNames = allowedRoleIds
+                        .map(id => {
+                            const role = interaction.guild.roles.cache.get(id);
+                            return role ? `<@&${id}>` : `Unknown Role (${id})`;
+                        })
+                        .join(', ');
+                    
+                    return interaction.reply({
+                        content: `You do not have permission to use this command. You need one of these roles: ${roleNames}`,
+                        ephemeral: true
+                    });
+                }
+            }
 
-            // Update the lastAccessed timestamp
-            externalServer.lastAccessed = new Date();
-            await externalServer.save();
+            // Mark server as active and update lastAccessed timestamp
+            await markServerActive(interaction.guild.id);
 
             const location = interaction.options.getString('location');
             const details = interaction.options.getString('details');

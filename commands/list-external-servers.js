@@ -1,11 +1,15 @@
 /**
  * @file External server listing command
  * @module CommandModules/ListExternalServers
+ * @description Lists all external servers configured to use the security request system with details 
+ * about their status (active/inactive), number of pending requests, and last activity time. Servers are 
+ * automatically marked inactive after 30 days of no activity.
  */
 
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { ExternalServer, SecurityRequest, sequelize } = require('../database/models');
 const { Op } = require('sequelize');
+const { INACTIVITY_THRESHOLD_DAYS } = require('../database/server-utils');
 
 module.exports = {
     /**
@@ -24,6 +28,7 @@ module.exports = {
     /**
      * Executes the list-external-servers command.
      * Shows a list of all external servers that have configured security requests.
+     * Servers are considered inactive after ${INACTIVITY_THRESHOLD_DAYS} days without activity.
      * @param {Object} interaction The interaction object.
      * @returns {Promise<void>}
      */
@@ -79,7 +84,7 @@ module.exports = {
                 .setTitle('External Servers')
                 .setDescription(`${externalServers.length} external servers${showInactive ? ' (including inactive)' : ''}`)
                 .setTimestamp()
-                .setFooter({ text: 'Arcani Security Solutions' });
+                .setFooter({ text: 'VIG Security' });
             
             // Add fields for each server (limit to 25 due to Discord embed limitations)
             const serversToShow = externalServers.slice(0, 25);

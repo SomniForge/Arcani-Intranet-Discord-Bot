@@ -6,9 +6,10 @@
  */
 
 /**
- * @fileoverview Script to register slash commands with Discord for a specific guild.
+ * @fileoverview Script to register slash commands with Discord globally and for specific guilds.
  * Reads command files from the 'commands' directory and deploys them using the Discord API.
- * Requires DISCORD_TOKEN, CLIENT_ID, and GUILD_ID environment variables.
+ * Requires DISCORD_TOKEN and CLIENT_ID environment variables.
+ * Optional GUILD_ID environment variable for guild-specific deployment.
  */
 
 require('dotenv').config();
@@ -17,7 +18,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const commands = [];
-// Grab all the command files from the commands directory you created earlier
+// Grab all the command files from the commands directory
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
@@ -40,23 +41,34 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
  * Immediately invoked async function (IIFE) to deploy commands.
  */
 (async () => {
-    if (!process.env.CLIENT_ID || !process.env.GUILD_ID) {
-        console.error('Error: CLIENT_ID and GUILD_ID must be set in the .env file.');
+    if (!process.env.CLIENT_ID) {
+        console.error('Error: CLIENT_ID must be set in the .env file.');
         process.exit(1);
     }
+    
     try {
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
-        // The put method is used to fully refresh all commands in the guild with the current set
-        // Use Routes.applicationCommands(clientId) for global commands later
-        const data = await rest.put(
-            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+        // Check if we're deploying to a specific guild or globally
+        if (process.env.GUILD_ID) {
+            // Deploy to specific guild (faster for development)
+            const guildData = await rest.put(
+                Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+                { body: commands },
+            );
+            console.log(`Successfully reloaded ${guildData.length} application (/) commands for guild ${process.env.GUILD_ID}.`);
+        }
+        
+        // Deploy commands globally - these will be available in all guilds
+        const globalData = await rest.put(
+            Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands },
         );
-
-        console.log(`Successfully reloaded ${data.length} application (/) commands for guild ${process.env.GUILD_ID}.`);
+        
+        console.log(`Successfully reloaded ${globalData.length} application (/) commands globally.`);
+        console.log(`Global commands may take up to an hour to propagate to all servers.`);
+        
     } catch (error) {
-        // And of course, make sure you catch and log any errors!
-        console.error(error);
+        console.error('Error during command deployment:', error);
     }
 })();

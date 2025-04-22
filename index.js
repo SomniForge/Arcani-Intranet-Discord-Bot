@@ -13,6 +13,9 @@ const path = require('node:path');
 // Import necessary discord.js classes
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 
+// Import database
+const { initializeDatabase } = require('./database/models');
+
 /**
  * Represents the main Discord client.
  * @type {Client}
@@ -83,8 +86,18 @@ for (const file of eventFiles) {
     console.log(`[INFO] Loaded event ${event.name}`);
 }
 
-// Use the token from environment variables
-const token = process.env.DISCORD_TOKEN;
+// Initialize the database before logging in
+(async () => {
+    try {
+        await initializeDatabase();
+        
+        // Use the token from environment variables
+        const token = process.env.DISCORD_TOKEN;
 
-// Log in to Discord with your client's token
-client.login(token);
+        // Log in to Discord with your client's token
+        client.login(token);
+    } catch (error) {
+        console.error('[FATAL] Failed to initialize the bot:', error);
+        process.exit(1);
+    }
+})();

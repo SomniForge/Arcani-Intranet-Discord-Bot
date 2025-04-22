@@ -12,11 +12,13 @@ A modular Discord bot built with Discord.js that serves as an 'intranet' for a s
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Create a `.env` file in the root directory with the following variables:
+
    ```
    DISCORD_TOKEN=YOUR_BOT_TOKEN_HERE
    CLIENT_ID=YOUR_CLIENT_ID_HERE
@@ -37,13 +39,16 @@ A modular Discord bot built with Discord.js that serves as an 'intranet' for a s
 ## Commands
 
 ### /request-security
+
 Allows customers to request security assistance. Requires:
+
 - **location**: Where security assistance is needed
 - **details**: (Optional) Additional information about the situation
 
 ## Running the Bot
 
 1. Deploy commands to your Discord server:
+
    ```bash
    npm run deploy
    ```
@@ -56,13 +61,16 @@ Allows customers to request security assistance. Requires:
 ## Development
 
 ### Project Structure
+
 - `index.js`: Main entry point that loads commands and events
 - `deploy-commands.js`: Script to register slash commands with Discord
 - `commands/`: Contains command files
 - `events/`: Contains event handler files
 
 ### Documentation
+
 Generate documentation:
+
 ```bash
 npm run docs
 ```

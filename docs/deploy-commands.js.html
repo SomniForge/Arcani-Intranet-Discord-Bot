@@ -34,9 +34,10 @@
  */
 
 /**
- * @fileoverview Script to register slash commands with Discord for a specific guild.
+ * @fileoverview Script to register slash commands with Discord globally and for specific guilds.
  * Reads command files from the 'commands' directory and deploys them using the Discord API.
- * Requires DISCORD_TOKEN, CLIENT_ID, and GUILD_ID environment variables.
+ * Requires DISCORD_TOKEN and CLIENT_ID environment variables.
+ * Optional GUILD_ID environment variable for guild-specific deployment.
  */
 
 require('dotenv').config();
@@ -45,7 +46,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const commands = [];
-// Grab all the command files from the commands directory you created earlier
+// Grab all the command files from the commands directory
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
@@ -68,24 +69,35 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
  * Immediately invoked async function (IIFE) to deploy commands.
  */
 (async () => {
-    if (!process.env.CLIENT_ID || !process.env.GUILD_ID) {
-        console.error('Error: CLIENT_ID and GUILD_ID must be set in the .env file.');
+    if (!process.env.CLIENT_ID) {
+        console.error('Error: CLIENT_ID must be set in the .env file.');
         process.exit(1);
     }
+    
     try {
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
-        // The put method is used to fully refresh all commands in the guild with the current set
-        // Use Routes.applicationCommands(clientId) for global commands later
-        const data = await rest.put(
-            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+        // Check if we're deploying to a specific guild or globally
+        if (process.env.GUILD_ID) {
+            // Deploy to specific guild (faster for development)
+            const guildData = await rest.put(
+                Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+                { body: commands },
+            );
+            console.log(`Successfully reloaded ${guildData.length} application (/) commands for guild ${process.env.GUILD_ID}.`);
+        }
+        
+        // Deploy commands globally - these will be available in all guilds
+        const globalData = await rest.put(
+            Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands },
         );
-
-        console.log(`Successfully reloaded ${data.length} application (/) commands for guild ${process.env.GUILD_ID}.`);
+        
+        console.log(`Successfully reloaded ${globalData.length} application (/) commands globally.`);
+        console.log(`Global commands may take up to an hour to propagate to all servers.`);
+        
     } catch (error) {
-        // And of course, make sure you catch and log any errors!
-        console.error(error);
+        console.error('Error during command deployment:', error);
     }
 })();
 </code></pre>
@@ -98,13 +110,13 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 18:02:06 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 21:37:16 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

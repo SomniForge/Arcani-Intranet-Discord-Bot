@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: commands/list-external-servers.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: commands/list-external-servers.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file External server listing command
+ * @module CommandModules/ListExternalServers
+ */
+
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { ExternalServer, SecurityRequest, sequelize } = require('../database/models');
+const { Op } = require('sequelize');
+
+module.exports = {
+    /**
+     * Command definition for /list-external-servers
+     * @type {SlashCommandBuilder}
+     */
+    data: new SlashCommandBuilder()
+        .setName('list-external-servers')
+        .setDescription('List all external servers using the security request system')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .addBooleanOption(option =>
+            option.setName('show-inactive')
+                .setDescription('Whether to show inactive servers')
+                .setRequired(false)),
+    
+    /**
+     * Executes the list-external-servers command.
+     * Shows a list of all external servers that have configured security requests.
+     * @param {Object} interaction The interaction object.
+     * @returns {Promise&lt;void>}
+     */
+    async execute(interaction) {
+        const mainGuildId = process.env.GUILD_ID;
+        
+        // Check if this command is being used in the main security server
+        if (interaction.guildId !== mainGuildId) {
+            return interaction.reply({
+                content: 'This command can only be used in the main security server.',
+                ephemeral: true
+            });
+        }
+        
+        const showInactive = interaction.options.getBoolean('show-inactive') || false;
+        
+        try {
+            // Query for servers based on active status
+            const whereClause = showInactive ? {} : { isActive: true };
+            const externalServers = await ExternalServer.findAll({
+                where: whereClause,
+                order: [['lastAccessed', 'DESC']]
+            });
+            
+            if (externalServers.length === 0) {
+                return interaction.reply({
+                    content: 'No external servers have been configured for security requests.',
+                    ephemeral: true
+                });
+            }
+            
+            // Get counts of active requests for each server
+            const serverIds = externalServers.map(server => server.guildId);
+            const activeRequestCounts = await SecurityRequest.findAll({
+                attributes: ['externalGuildId', [sequelize.fn('COUNT', sequelize.col('requestId')), 'count']],
+                where: {
+                    externalGuildId: { [Op.in]: serverIds },
+                    status: { [Op.ne]: 'concluded' }
+                },
+                group: ['externalGuildId'],
+                raw: true
+            });
+            
+            // Convert to a map for easy lookup
+            const requestCountMap = new Map();
+            activeRequestCounts.forEach(item => {
+                requestCountMap.set(item.externalGuildId, item.count);
+            });
+            
+            // Create an embed to display all servers
+            const embed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle('External Servers')
+                .setDescription(`${externalServers.length} external servers${showInactive ? ' (including inactive)' : ''}`)
+                .setTimestamp()
+                .setFooter({ text: 'Arcani Security Solutions' });
+            
+            // Add fields for each server (limit to 25 due to Discord embed limitations)
+            const serversToShow = externalServers.slice(0, 25);
+            
+            for (const server of serversToShow) {
+                const activeRequests = requestCountMap.get(server.guildId) || 0;
+                const lastAccessedDate = new Date(server.lastAccessed).toLocaleString();
+                
+                embed.addFields({
+                    name: server.guildName,
+                    value: `**ID:** ${server.guildId}\n**Channel:** &lt;#${server.channelId}>\n**Status:** ${server.isActive ? '🟢 Active' : '🔴 Inactive'}\n**Active Requests:** ${activeRequests}\n**Last Activity:** ${lastAccessedDate}`
+                });
+            }
+            
+            if (externalServers.length > 25) {
+                embed.addFields({
+                    name: 'More Servers',
+                    value: `${externalServers.length - 25} additional servers not shown. Please use filters to narrow down results.`
+                });
+            }
+            
+            return interaction.reply({
+                embeds: [embed],
+                ephemeral: true
+            });
+            
+        } catch (error) {
+            console.error(`Error listing external servers: ${error}`);
+            return interaction.reply({
+                content: `There was an error retrieving the server list: ${error.message}`,
+                ephemeral: true
+            });
+        }
+    },
+};</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 21:37:16 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

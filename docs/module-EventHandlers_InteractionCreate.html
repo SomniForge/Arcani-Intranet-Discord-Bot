@@ -246,7 +246,7 @@ Handles slash commands, button interactions, and modal submissions for security 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line200">line 200</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line517">line 517</a>
     </li></ul></dd>
     
 
@@ -402,7 +402,7 @@ Shows a modal to the user to collect the reason for conclusion.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line102">line 102</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line103">line 103</a>
     </li></ul></dd>
     
 
@@ -558,7 +558,636 @@ Updates the original request embed to show the conclusion details and removes bu
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line146">line 146</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line147">line 147</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;void></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~handleExternalConcludeButton"><span class="type-signature">(async, inner) </span>handleExternalConcludeButton<span class="signature">(interaction, requestId, externalGuildId)</span><span class="type-signature"> &rarr; {Promise.&lt;void>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Handles the logic for external 'Conclude Request' button interaction.
+Shows a modal to collect conclusion reason and guild ID.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>interaction</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">ButtonInteraction</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The button interaction object.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>requestId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The ID of the original request.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>externalGuildId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The ID of the external guild.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line340">line 340</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;void></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~handleExternalConcludeModalSubmit"><span class="type-signature">(async, inner) </span>handleExternalConcludeModalSubmit<span class="signature">(interaction, requestId, externalGuildId)</span><span class="type-signature"> &rarr; {Promise.&lt;void>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Handles the submission of the external 'Conclude Request' modal.
+Updates both the security server and external server messages.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>interaction</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">ModalSubmitInteraction</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The modal submit interaction object (already deferred).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>requestId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The ID of the original request.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>externalGuildId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The ID of the external guild.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line380">line 380</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;void></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~handleExternalRespondButton"><span class="type-signature">(async, inner) </span>handleExternalRespondButton<span class="signature">(interaction, member, requestId, externalGuildId)</span><span class="type-signature"> &rarr; {Promise.&lt;void>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Handles the logic for external 'Respond' button interaction.
+Updates both the security server embed and the customer server embed.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>interaction</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">ButtonInteraction</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The button interaction object (already deferred).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>member</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">GuildMember</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The security guild member who clicked the button.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>requestId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The ID of the original request.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>externalGuildId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The ID of the external guild where the request originated.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line200">line 200</a>
     </li></ul></dd>
     
 
@@ -737,7 +1366,7 @@ Updates the original request embed to add the responding user.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line42">line 42</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line43">line 43</a>
     </li></ul></dd>
     
 
@@ -847,7 +1476,7 @@ Updates the original request embed to add the responding user.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line13">line 13</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line14">line 14</a>
     </li></ul></dd>
     
 
@@ -919,7 +1548,7 @@ Updates the original request embed to add the responding user.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line28">line 28</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line29">line 29</a>
     </li></ul></dd>
     
 
@@ -991,7 +1620,7 @@ Updates the original request embed to add the responding user.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line23">line 23</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line24">line 24</a>
     </li></ul></dd>
     
 
@@ -1063,7 +1692,7 @@ Updates the original request embed to add the responding user.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line8">line 8</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line9">line 9</a>
     </li></ul></dd>
     
 
@@ -1135,7 +1764,7 @@ Updates the original request embed to add the responding user.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line18">line 18</a>
+        <a href="events_interactionCreate.js.html">events/interactionCreate.js</a>, <a href="events_interactionCreate.js.html#line19">line 19</a>
     </li></ul></dd>
     
 
@@ -1165,13 +1794,13 @@ Updates the original request embed to add the responding user.</p>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 18:02:06 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 21:37:16 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

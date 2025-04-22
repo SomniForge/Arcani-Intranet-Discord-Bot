@@ -1,6 +1,6 @@
 /**
  * @file Overview of the Arcani Discord Bot
- * @author Arcani Security Team
+ * @author SomniForge
  * @copyright 2025
  * @version 1.0.0
  * 

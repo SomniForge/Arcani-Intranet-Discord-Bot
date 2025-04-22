@@ -1,11 +1,11 @@
 # Dependencies
 /node_modules
 
-# Github copilot instructions
+# Local Github copilot instructions
 /.github
 
-# Environment variables
+# Local Environment variables
 .env
 
-# Database files
+# Local Database files
 *.sqlite

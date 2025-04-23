@@ -7,7 +7,7 @@
  */
 
 const { sequelize, ExternalServer, ServerConfig } = require('./models');
-const { QueryTypes } = require('sequelize');
+const { QueryTypes, DataTypes } = require('sequelize');
 
 /**
  * Runs all database migrations
@@ -44,7 +44,31 @@ async function runMigrations() {
  */
 async function migrateLastAccessed() {
     try {
-        // Check if the column exists
+        console.log('[INFO] Running migration: Adding lastAccessed column to ExternalServers');
+        
+        // First check if the ExternalServers table exists
+        const tableListQuery = await sequelize.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='ExternalServers';",
+            { type: QueryTypes.SELECT }
+        );
+        
+        // If table doesn't exist, we'll create it during model sync
+        if (tableListQuery.length === 0) {
+            console.log('[INFO] ExternalServers table does not exist yet. It will be created during model sync.');
+            
+            // Ensure the ExternalServer model is defined with the lastAccessed column
+            if (!ExternalServer) {
+                console.log('[WARN] ExternalServer model not loaded properly.');
+                return;
+            }
+            
+            // Force sync just this model to create the table with the column already
+            await ExternalServer.sync();
+            console.log('[INFO] ExternalServers table created with lastAccessed column.');
+            return;
+        }
+        
+        // If table exists, check if the column exists
         const tableInfo = await sequelize.query(
             "PRAGMA table_info(ExternalServers);",
             { type: QueryTypes.SELECT }
@@ -53,8 +77,6 @@ async function migrateLastAccessed() {
         const hasLastAccessed = tableInfo.some(column => column.name === 'lastAccessed');
         
         if (!hasLastAccessed) {
-            console.log('[INFO] Running migration: Adding lastAccessed column to ExternalServers');
-            
             // Add the column
             await sequelize.query(
                 "ALTER TABLE ExternalServers ADD COLUMN lastAccessed DATETIME;"

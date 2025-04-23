@@ -296,6 +296,20 @@ async function handleExternalRespondButton(interaction, member, requestId, exter
             const responderMentions = responders.map(id => `<@${id}>`).join('\n');
             respondersField.value = responderMentions || 'None yet.';
             
+            // Get all responder names (nicknames if available)
+            const allResponders = [];
+            for (const responderId of responders) {
+                try {
+                    const responderMember = await interaction.guild.members.fetch(responderId);
+                    if (responderMember) {
+                        allResponders.push(responderMember.nickname || responderMember.user.username);
+                    }
+                } catch (error) {
+                    // If we can't fetch the member, at least show their ID as a fallback
+                    allResponders.push(`Unknown Member (${responderId})`);
+                }
+            }
+            
             // Update the security server message
             await interaction.editReply({ embeds: [updatedEmbed] });
             
@@ -340,30 +354,31 @@ async function handleExternalRespondButton(interaction, member, requestId, exter
                     // Update the external server message
                     const externalEmbed = externalMessage.embeds[0];
                     
-                    // Get all responder names (nicknames if available)
-                    const allResponders = [];
-                    for (const responderId of responders) {
-                        try {
-                            const responderMember = await interaction.guild.members.fetch(responderId);
-                            if (responderMember) {
-                                allResponders.push(responderMember.nickname || responderMember.user.username);
-                            }
-                        } catch (error) {
-                            // If we can't fetch the member, at least show their ID as a fallback
-                            allResponders.push(`Unknown Member (${responderId})`);
-                        }
+                    // Format a clean list of responder names
+                    const respondersList = allResponders.length > 0 
+                        ? allResponders.join(', ') 
+                        : 'None yet.';
+                    
+                    const updatedExternalEmbed = EmbedBuilder.from(externalEmbed);
+                    
+                    // Find and update the Status field or add it if not present
+                    const statusFieldIndex = updatedExternalEmbed.data.fields.findIndex(field => field.name === 'Status');
+                    
+                    if (statusFieldIndex !== -1) {
+                        // Update existing Status field
+                        updatedExternalEmbed.data.fields[statusFieldIndex] = {
+                            name: 'Status',
+                            value: `Security personnel responding: ${respondersList}`
+                        };
+                    } else {
+                        // Add Status field if not present
+                        updatedExternalEmbed.addFields({
+                            name: 'Status',
+                            value: `Security personnel responding: ${respondersList}`
+                        });
                     }
                     
-                    const respondersList = allResponders.join(', ');
-                    
-                    const updatedExternalEmbed = EmbedBuilder.from(externalEmbed)
-                        .setColor(0x0099FF)
-                        .setTitle('Security Request Updated')
-                        .addFields(
-                            ...externalEmbed.fields.filter(field => field.name !== 'Status'),
-                            { name: 'Status', value: `Security personnel responding: ${respondersList}` }
-                        );
-                    
+                    // Update the message in the external server
                     await externalMessage.edit({ embeds: [updatedExternalEmbed] });
                     
                     return interaction.followUp({ 

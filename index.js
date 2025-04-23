@@ -119,10 +119,33 @@ async function checkForUpdateNotifications(client) {
                 const isError = notificationData.type === 'error' || notificationData.type === 'maintenance';
                 const title = notificationData.title || (isUpdate ? '🔄 Bot Updated' : (isError ? '❌ Update Error' : '📢 System Notification'));
                 
+                // Format the message if it contains commit messages from git (indicated by newlines)
+                let message = notificationData.message;
+                
+                // Check if message has the git commit format (contains multiple lines)
+                if (isUpdate && message.includes('\n\n')) {
+                    // Split the message into parts - text before commits and the commits themselves
+                    const [beforeCommits, commitsRaw, ...afterCommits] = message.split('\n\n');
+                    
+                    // Format the commit messages as a bulleted list if they exist
+                    if (commitsRaw && commitsRaw.trim()) {
+                        const commits = commitsRaw.split('\n').filter(line => line.trim() !== '');
+                        const formattedCommits = commits.map(commit => `• ${commit.trim()}`).join('\n');
+                        
+                        // Reconstruct the message with formatted commits
+                        message = `${beforeCommits}\n\n**Changes:**\n${formattedCommits}`;
+                        
+                        // Add back any content that came after the commits, if it exists
+                        if (afterCommits.length > 0) {
+                            message += `\n\n${afterCommits.join('\n\n')}`;
+                        }
+                    }
+                }
+                
                 // Send the notification
                 const result = await sendSystemNotification(
                     client,
-                    notificationData.message,
+                    message,
                     {
                         isUpdate,
                         isError,

@@ -97,50 +97,33 @@ async function isServerManager(member) {
 }
 
 /**
- * Get the customer role ID for a server
- * @param {string} serverId - The Discord server/guild ID
- * @returns {Promise<string|null>} The customer role ID or null if not set
- * @example
- * // Get the customer role ID for permission checking
- * const customerRoleId = await getCustomerRoleId(interaction.guild.id);
- * if (member.roles.cache.has(customerRoleId)) {
- *   // This is a customer
- * }
+ * Retrieves the customer role ID for a given guild.
+ * @param {string} guildId - The ID of the guild.
+ * @returns {Promise<string|null>} The customer role ID, or null if not configured.
  */
-async function getCustomerRoleId(serverId) {
-    const config = await getServerConfig(serverId);
-    return config?.customerRoleId || process.env.CUSTOMER_ROLE_ID || null;
+async function getCustomerRoleId(guildId) {
+    const config = await ServerConfig.findOne({ where: { guildId } });
+    return config?.customerRoleId || null;
 }
 
 /**
- * Get the security role ID for a server
- * @param {string} serverId - The Discord server/guild ID
- * @returns {Promise<string|null>} The security role ID or null if not set
- * @example
- * // Get the security personnel role ID
- * const securityRoleId = await getSecurityRoleId(interaction.guild.id);
- * if (!member.roles.cache.has(securityRoleId)) {
- *   return interaction.reply({ content: 'Only security personnel can use this command.', ephemeral: true });
- * }
+ * Retrieves the security role ID for a given guild.
+ * @param {string} guildId - The ID of the guild.
+ * @returns {Promise<string|null>} The security role ID, or null if not configured.
  */
-async function getSecurityRoleId(serverId) {
-    const config = await getServerConfig(serverId);
-    return config?.securityRoleId || process.env.SECURITY_ROLE_ID || null;
+async function getSecurityRoleId(guildId) {
+    const config = await ServerConfig.findOne({ where: { guildId } });
+    return config?.securityRoleId || null;
 }
 
 /**
- * Get the alert channel ID for a server
- * @param {string} serverId - The Discord server/guild ID
- * @returns {Promise<string|null>} The alert channel ID or null if not set
- * @example
- * // Get the alert channel ID to send notifications
- * const alertChannelId = await getAlertChannelId(interaction.guild.id);
- * const alertChannel = await interaction.guild.channels.fetch(alertChannelId);
- * await alertChannel.send('This is an important security alert!');
+ * Retrieves the alert channel ID for a given guild.
+ * @param {string} guildId - The ID of the guild.
+ * @returns {Promise<string|null>} The alert channel ID, or null if not configured.
  */
-async function getAlertChannelId(serverId) {
-    const config = await getServerConfig(serverId);
-    return config?.alertChannelId || process.env.ALERT_CHANNEL_ID || null;
+async function getAlertChannelId(guildId) {
+    const config = await ServerConfig.findOne({ where: { guildId } });
+    return config?.alertChannelId || null;
 }
 
 /**

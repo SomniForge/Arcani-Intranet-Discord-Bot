@@ -138,7 +138,7 @@ module.exports = {
                         .setTitle('Authorized Security Request Roles')
                         .setDescription('The following roles can use security request commands:')
                         .setTimestamp()
-                        .setFooter({ text: 'Arcani Security Solutions' });
+                        .setFooter({ text: 'VIG SecurityS' });
                     
                     // Add fields for each role
                     let roleListText = '';

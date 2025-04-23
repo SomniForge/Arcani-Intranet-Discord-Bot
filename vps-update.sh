@@ -381,7 +381,7 @@ update() {
         if [ $? -ne 0 ]; then
             log "❌ Git pull failed, but continuing with update"
             create_notification "Update Failed" "Failed to pull latest changes from GitHub." "error" false
-        else {
+        else
             # Get the new commit hash
             local new_commit=$(git rev-parse HEAD 2>/dev/null)
             
@@ -398,15 +398,18 @@ update() {
                         version="latest"
                     fi
                     
+                    # Format the commit messages in a way that the JS parser can identify them easily
+                    local formatted_changes=$(echo "$changes" | sed ':a;N;$!ba;s/\n/\\n/g')
+                    
                     # Create notification with changes
-                    create_notification "Bot Updated to $version" "The bot has been updated with the following changes:\n\n$changes\n\nUpdate completed at $(date '+%Y-%m-%d %H:%M:%S')" "update" true
+                    create_notification "Bot Updated to $version" "The bot has been updated with the following changes:\\n\\n$formatted_changes\\n\\nUpdate completed at $(date '+%Y-%m-%d %H:%M:%S')" "update" true
                 else
                     create_notification "Bot Updated" "The bot has been updated to the latest version." "update" true
                 fi
             else
                 log "✅ Git pull successful - already up to date"
                 create_notification "Bot Update Check" "The bot is already running the latest version." "update" true
-            }
+            fi
         fi
     else
         log "⚠️ Not a git repository, skipping git pull"

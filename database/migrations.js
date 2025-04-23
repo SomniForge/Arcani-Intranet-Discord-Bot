@@ -142,9 +142,9 @@ async function migrateServerConfigs() {
                 try {
                     await ServerConfig.create({
                         serverId: mainGuildId,
-                        securityRoleId: process.env.SECURITY_ROLE_ID || null,
-                        customerRoleId: process.env.CUSTOMER_ROLE_ID || null,
-                        alertChannelId: process.env.ALERT_CHANNEL_ID || null
+                        securityRoleId: null, // Removed process.env fallback
+                        customerRoleId: null, // Removed process.env fallback
+                        alertChannelId: null  // Removed process.env fallback
                     });
                     console.log('[INFO] Migration completed: Created initial server configuration');
                 } catch (createError) {

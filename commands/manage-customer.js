@@ -3,7 +3,8 @@
  * @module CommandModules/ManageCustomer
  * @description Allows security personnel to manage which users have the customer role.
  * This command provides functionality to add or remove the customer role from users
- * in the security server, controlling who can make security requests.
+ * in the security server, controlling who can make security requests. Only users with
+ * the security role can use this command to manage customer roles.
  */
 
 const { SlashCommandBuilder, PermissionFlagsBits, GuildMember } = require('discord.js');

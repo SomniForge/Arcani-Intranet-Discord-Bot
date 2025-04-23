@@ -31,6 +31,14 @@ module.exports = {
      * Servers are considered inactive after ${INACTIVITY_THRESHOLD_DAYS} days without activity.
      * @param {Object} interaction The interaction object.
      * @returns {Promise<void>}
+     * @example
+     * // Example usage:
+     * // /list-external-servers
+     * // /list-external-servers show-inactive:true
+     * //
+     * // This command can only be used in the main security server by administrators.
+     * // It displays information about all customer servers that have set up the bot,
+     * // including their activity status, channel configuration, and any pending requests.
      */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });

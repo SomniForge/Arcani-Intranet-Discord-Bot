@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: CommandModules/RequestSecurity</title>
+    <title>JSDoc: Module: CommandModules/SetupSecurityChannel</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: CommandModules/RequestSecurity</h1>
+    <h1 class="page-title">Module: CommandModules/SetupSecurityChannel</h1>
 
     
 
@@ -38,9 +38,10 @@
     <div class="container-overview">
     
         
-            <div class="description"><p>Allows customers in the main Arcani security server to request on-site security assistance.
-This command is ONLY intended for use within the main Arcani Discord server, not external customer servers.
-It creates an alert in the configured security channel and allows security personnel to respond.</p></div>
+            <div class="description"><p>Allows server administrators to register their server with the Arcani security system
+and designate a channel for security requests. This is the initial setup command that must be run
+in external servers before they can use the security request features. It registers the server in
+the database and configures a dedicated security channel.</p></div>
         
 
         
@@ -89,7 +90,7 @@ It creates an alert in the configured security channel and allows security perso
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="commands_request-security.js.html">commands/request-security.js</a>, <a href="commands_request-security.js.html#line2">line 2</a>
+        <a href="commands_setup-security-channel.js.html">commands/setup-security-channel.js</a>, <a href="commands_setup-security-channel.js.html#line1">line 1</a>
     </li></ul></dd>
     
 
@@ -146,7 +147,7 @@ It creates an alert in the configured security channel and allows security perso
 
 
 <div class="description">
-    <p>Command definition for /request-security</p>
+    <p>Command definition for /setup-security-channel</p>
 </div>
 
 
@@ -194,7 +195,7 @@ It creates an alert in the configured security channel and allows security perso
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="commands_request-security.js.html">commands/request-security.js</a>, <a href="commands_request-security.js.html#line28">line 28</a>
+        <a href="commands_setup-security-channel.js.html">commands/setup-security-channel.js</a>, <a href="commands_setup-security-channel.js.html#line19">line 19</a>
     </li></ul></dd>
     
 
@@ -230,9 +231,8 @@ It creates an alert in the configured security channel and allows security perso
 
 
 <div class="description">
-    <p>Executes the request-security command.
-Checks user permissions, creates an embed and buttons, and sends an alert to the designated channel.
-This command is only intended for use within the main Arcani Discord server.</p>
+    <p>Executes the setup-security-channel command.
+Configures a channel in an external server for security requests.</p>
 </div>
 
 
@@ -274,7 +274,7 @@ This command is only intended for use within the main Arcani Discord server.</p>
             <td class="type">
             
                 
-<span class="param-type">CommandInteraction</span>
+<span class="param-type">Object</span>
 
 
             
@@ -325,7 +325,7 @@ This command is only intended for use within the main Arcani Discord server.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="commands_request-security.js.html">commands/request-security.js</a>, <a href="commands_request-security.js.html#line46">line 46</a>
+        <a href="commands_setup-security-channel.js.html">commands/setup-security-channel.js</a>, <a href="commands_setup-security-channel.js.html#line44">line 44</a>
     </li></ul></dd>
     
 
@@ -372,158 +372,15 @@ This command is only intended for use within the main Arcani Discord server.</p>
 
 
 
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Example usage:// /setup-security-channel channel:#security-requests//// This command must be used by a server administrator in any server that wishes// to connect with Arcani Security services. Once configured, users in that server// can use the /request-external-security command in the designated channel.//// Follow-up configuration options:// - Use /set-required-roles to restrict who can submit security requests</code></pre>
+
+
 
         
     
 
-    
-        <h3 class="subsection-title">Type Definitions</h3>
-
-        
-                
-<h4 class="name" id="~CommandInteraction">CommandInteraction</h4>
-
-
-
-
-<div class="description">
-    <p>Discord.js CommandInteraction object</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="commands_request-security.js.html">commands/request-security.js</a>, <a href="commands_request-security.js.html#line13">line 13</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-            
-                
-<h4 class="name" id="~GuildMember">GuildMember</h4>
-
-
-
-
-<div class="description">
-    <p>Discord.js GuildMember object</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="commands_request-security.js.html">commands/request-security.js</a>, <a href="commands_request-security.js.html#line18">line 18</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-            
     
 
     

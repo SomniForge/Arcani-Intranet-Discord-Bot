@@ -2,6 +2,9 @@
 /**
  * @file Security request command
  * @module CommandModules/RequestSecurity
+ * @description Allows customers in the main Arcani security server to request on-site security assistance.
+ * This command is ONLY intended for use within the main Arcani Discord server, not external customer servers.
+ * It creates an alert in the configured security channel and allows security personnel to respond.
  */
 
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, PermissionsBitField, GuildMember } = require('discord.js');
@@ -24,7 +27,7 @@ module.exports = {
      */
     data: new SlashCommandBuilder()
         .setName('request-security')
-        .setDescription('Requests on-site security assistance.')
+        .setDescription('Request on-site security assistance (Arcani Discord only)')
         .addStringOption(option =>
             option.setName('location')
                 .setDescription('The location where security is needed.')
@@ -36,10 +39,20 @@ module.exports = {
     /**
      * Executes the request-security command.
      * Checks user permissions, creates an embed and buttons, and sends an alert to the designated channel.
+     * This command is only intended for use within the main Arcani Discord server.
      * @param {CommandInteraction} interaction The interaction object.
      * @returns {Promise<void>}
      */
     async execute(interaction) {
+        // Check if this is the main Arcani security server
+        const mainGuildId = process.env.GUILD_ID;
+        if (interaction.guild.id !== mainGuildId) {
+            return interaction.reply({ 
+                content: '⚠️ This command is only for use within the main Arcani security server. If you are in a customer server and need security assistance, please use `/request-external-security` instead.',
+                ephemeral: true 
+            });
+        }
+
         // Fetch configuration from database
         const customerRoleId = await getCustomerRoleId(interaction.guild.id);
         const securityRoleId = await getSecurityRoleId(interaction.guild.id);
@@ -58,7 +71,10 @@ module.exports = {
 
         // Check if the user has the customer role
         if (!member.roles.cache.has(customerRoleId)) {
-            return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+            return interaction.reply({ 
+                content: `You do not have permission to use this command. You need the <@&${customerRoleId}> role to request security assistance.`, 
+                ephemeral: true 
+            });
         }
 
         const location = interaction.options.getString('location');
@@ -69,7 +85,7 @@ module.exports = {
         const requestEmbed = new EmbedBuilder()
             .setColor(0xFF0000) // Red color for urgency
             .setTitle('🚨 Security Request 🚨')
-            .setAuthor({ name: requester.tag, iconURL: requester.displayAvatarURL() })
+            .setAuthor({ name: requester.tag || requester.username, iconURL: requester.displayAvatarURL() })
             .addFields(
                 { name: 'Location', value: location },
                 { name: 'Details', value: details },

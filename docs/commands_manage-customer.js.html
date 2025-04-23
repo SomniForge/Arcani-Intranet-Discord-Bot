@@ -31,7 +31,8 @@
  * @module CommandModules/ManageCustomer
  * @description Allows security personnel to manage which users have the customer role.
  * This command provides functionality to add or remove the customer role from users
- * in the security server, controlling who can make security requests.
+ * in the security server, controlling who can make security requests. Only users with
+ * the security role can use this command to manage customer roles.
  */
 
 const { SlashCommandBuilder, PermissionFlagsBits, GuildMember } = require('discord.js');
@@ -83,82 +84,132 @@ module.exports = {
      * // Users with the customer role gain the ability to create security requests.
      */
     async execute(interaction) {
-        const securityRoleId = await getSecurityRoleId(interaction.guild.id);
-        const customerRoleId = await getCustomerRoleId(interaction.guild.id);
-
-        if (!securityRoleId || !customerRoleId) {
-            console.error(`Error: Missing required configuration for server ${interaction.guild.id}.`);
-            return interaction.reply({ 
-                content: 'This server is not fully configured for role management. An administrator needs to set up the security and customer roles using the /config-server command.',
-                ephemeral: true 
-            });
-        }
-
-        // Ensure the member object is fetched
-        const member = interaction.member instanceof GuildMember 
-            ? interaction.member 
-            : await interaction.guild.members.fetch(interaction.user.id);
-
-        // Check if the user has the security role
-        if (!member.roles.cache.has(securityRoleId)) {
-            return interaction.reply({ 
-                content: 'You do not have permission to use this command. Only security personnel can manage customer roles.', 
-                ephemeral: true 
-            });
-        }
-
-        const subcommand = interaction.options.getSubcommand();
-        const targetUser = interaction.options.getUser('user');
-        const targetMember = await interaction.guild.members.fetch(targetUser.id);
-        const customerRole = await interaction.guild.roles.fetch(customerRoleId);
-
-        if (!customerRole) {
-            return interaction.reply({ 
-                content: `Error: Could not find the customer role with ID ${customerRoleId}.`, 
-                ephemeral: true 
-            });
-        }
-
         try {
-            if (subcommand === 'add') {
-                // Check if user already has the role
-                if (targetMember.roles.cache.has(customerRoleId)) {
-                    return interaction.reply({
-                        content: `${targetUser} already has the ${customerRole.name} role.`,
-                        ephemeral: true
-                    });
-                }
+            // Defer the reply immediately to prevent timeout issues
+            await interaction.deferReply({ ephemeral: true });
+            
+            const securityRoleId = await getSecurityRoleId(interaction.guild.id);
+            const customerRoleId = await getCustomerRoleId(interaction.guild.id);
 
-                // Add the role
-                await targetMember.roles.add(customerRoleId);
-                
-                return interaction.reply({
-                    content: `Successfully added ${targetUser} to the ${customerRole.name} role.`,
-                    ephemeral: true
+            if (!securityRoleId || !customerRoleId) {
+                console.error(`Error: Missing required configuration for server ${interaction.guild.id}.`);
+                return interaction.editReply({ 
+                    content: 'This server is not fully configured for role management. An administrator needs to set up the security and customer roles using the /config-server command.'
                 });
-            } else if (subcommand === 'remove') {
-                // Check if user has the role
-                if (!targetMember.roles.cache.has(customerRoleId)) {
-                    return interaction.reply({
-                        content: `${targetUser} does not have the ${customerRole.name} role.`,
-                        ephemeral: true
+            }
+
+            // Ensure the member object is fetched
+            const member = interaction.member instanceof GuildMember 
+                ? interaction.member 
+                : await interaction.guild.members.fetch(interaction.user.id);
+
+            // Check if the user has the security role
+            if (!member.roles.cache.has(securityRoleId)) {
+                return interaction.editReply({ 
+                    content: 'You do not have permission to use this command. Only security personnel can manage customer roles.'
+                });
+            }
+
+            const subcommand = interaction.options.getSubcommand();
+            const targetUser = interaction.options.getUser('user');
+            
+            // Verify the target user exists
+            if (!targetUser) {
+                return interaction.editReply({
+                    content: 'Could not find the specified user.'
+                });
+            }
+            
+            let targetMember;
+            try {
+                targetMember = await interaction.guild.members.fetch(targetUser.id);
+            } catch (error) {
+                return interaction.editReply({
+                    content: `Error fetching user: The user may not be in this server. ${error.message}`
+                });
+            }
+
+            // Fetch the customer role
+            let customerRole;
+            try {
+                customerRole = await interaction.guild.roles.fetch(customerRoleId);
+                if (!customerRole) {
+                    throw new Error(`Customer role with ID ${customerRoleId} not found`);
+                }
+            } catch (error) {
+                return interaction.editReply({ 
+                    content: `Error: Could not find the customer role. ${error.message}`
+                });
+            }
+
+            // Check bot permissions
+            const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
+            if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+                return interaction.editReply({
+                    content: 'The bot does not have permission to manage roles in this server. Please give the bot the "Manage Roles" permission.'
+                });
+            }
+
+            // Check if the bot's highest role is above the customer role
+            if (botMember.roles.highest.position &lt;= customerRole.position) {
+                return interaction.editReply({
+                    content: `The bot cannot modify the ${customerRole.name} role because it's higher than or equal to the bot's highest role. Please move the bot's role above the customer role in the server settings.`
+                });
+            }
+
+            try {
+                if (subcommand === 'add') {
+                    // Check if user already has the role
+                    if (targetMember.roles.cache.has(customerRoleId)) {
+                        return interaction.editReply({
+                            content: `${targetUser} already has the ${customerRole.name} role.`
+                        });
+                    }
+
+                    // Add the role
+                    await targetMember.roles.add(customerRoleId);
+                    
+                    return interaction.editReply({
+                        content: `Successfully added ${targetUser} to the ${customerRole.name} role.`
+                    });
+                } else if (subcommand === 'remove') {
+                    // Check if user has the role
+                    if (!targetMember.roles.cache.has(customerRoleId)) {
+                        return interaction.editReply({
+                            content: `${targetUser} does not have the ${customerRole.name} role.`
+                        });
+                    }
+
+                    // Remove the role
+                    await targetMember.roles.remove(customerRoleId);
+                    
+                    return interaction.editReply({
+                        content: `Successfully removed ${targetUser} from the ${customerRole.name} role.`
                     });
                 }
-
-                // Remove the role
-                await targetMember.roles.remove(customerRoleId);
-                
-                return interaction.reply({
-                    content: `Successfully removed ${targetUser} from the ${customerRole.name} role.`,
-                    ephemeral: true
+            } catch (error) {
+                console.error(`Error managing customer role: ${error}`);
+                return interaction.editReply({
+                    content: `There was an error managing the role: ${error.message}`
                 });
             }
         } catch (error) {
-            console.error(`Error managing customer role: ${error}`);
-            return interaction.reply({
-                content: `There was an error managing the role: ${error.message}`,
-                ephemeral: true
-            });
+            console.error(`Error executing manage-customer`, error);
+            // Try to respond even if there was an error
+            try {
+                if (interaction.deferred) {
+                    await interaction.editReply({
+                        content: `An error occurred while executing this command: ${error.message}`
+                    });
+                } else if (!interaction.replied) {
+                    await interaction.reply({
+                        content: `An error occurred while executing this command: ${error.message}`,
+                        ephemeral: true
+                    });
+                }
+            } catch (replyError) {
+                console.error('Failed to reply with error:', replyError);
+            }
         }
     },
 };</code></pre>
@@ -171,13 +222,13 @@ module.exports = {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ConfigServer.html">CommandModules/ConfigServer</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ConfigServer.html">CommandModules/ConfigServer</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-CommandModules_SetupSecurityChannel.html">CommandModules/SetupSecurityChannel</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 23:59:27 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Tue Apr 22 2025 22:23:06 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

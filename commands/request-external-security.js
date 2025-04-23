@@ -2,8 +2,8 @@
  * @file External security request command
  * @module CommandModules/ExternalSecurityRequest
  * @description Allows users in external (customer) servers to request security assistance
- * from the main Arcani Security server. This command creates a request that appears both
- * in the external server and in the alert channel of the main security server.
+ * from the main Arcani Security server. This command is ONLY intended for customer Discord servers,
+ * not the main Arcani security server. Creates alerts in both servers and tracks requests in the database.
  */
 
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
@@ -18,7 +18,7 @@ module.exports = {
      */
     data: new SlashCommandBuilder()
         .setName('request-external-security')
-        .setDescription('Request security assistance from VIG Security')
+        .setDescription('Request security assistance from VIG Security (customer servers only)')
         .addStringOption(option =>
             option.setName('location')
                 .setDescription('The location where security is needed.')
@@ -34,7 +34,8 @@ module.exports = {
     
     /**
      * Executes the request-external-security command.
-     * Allows users in external servers to send security requests to the main server.
+     * Allows users in external (customer) servers to send security requests to the main server.
+     * This command is only for customer Discord servers, not the main Arcani security server.
      * @param {Object} interaction The interaction object.
      * @returns {Promise<void>}
      * @example
@@ -49,6 +50,14 @@ module.exports = {
     async execute(interaction) {
         // Get the main guild ID from the guild with primary server configuration
         const mainGuildId = process.env.GUILD_ID;
+        
+        // Check if command is being used in the main Arcani server
+        if (interaction.guild.id === mainGuildId) {
+            return interaction.reply({ 
+                content: '⚠️ This command is only for use in customer Discord servers, not the main VIG security server. If you need security assistance in the main server, please use `/request-security` instead.',
+                ephemeral: true 
+            });
+        }
         
         // Fetch alertChannelId and securityRoleId from the main guild's configuration
         const alertChannelId = await getAlertChannelId(mainGuildId);
@@ -67,7 +76,7 @@ module.exports = {
             const externalServer = await ExternalServer.findByPk(interaction.guild.id);
             if (!externalServer) {
                 return interaction.reply({
-                    content: 'This server has not been set up for security requests. An administrator needs to use the `/setup-security-channel` command first.',
+                    content: 'This server has not been set up for security requests. An administrator needs to use the `/setup-security-channel` command first to register with VIG Security.',
                     ephemeral: true
                 });
             }

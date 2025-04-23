@@ -284,16 +284,39 @@ async function handleExternalRespondButton(interaction, member, requestId, exter
             return interaction.followUp({ content: 'Error processing request: Embed structure invalid.', flags: [64] });
         }
 
-        // Get current responders from the database
-        let responders = request.responders || [];
+        // Get current responders from the database - parse JSON if it's a string
+        let responders = [];
+        try {
+            // If responders is a string (JSON), parse it; otherwise use as is or default to empty array
+            if (typeof request.responders === 'string') {
+                responders = JSON.parse(request.responders || '[]');
+            } else if (Array.isArray(request.responders)) {
+                responders = request.responders;
+            }
+            console.log(`[Interaction ${interactionId}] Current responders:`, responders);
+        } catch (parseError) {
+            console.error(`[Interaction ${interactionId}] Error parsing responders:`, parseError);
+            responders = [];
+        }
+        
         const userMention = `${member.user}`;
         const userID = member.user.id;
+        
+        // Get the nickname of the security member, or fallback to their username if no nickname is set
+        const responderName = member.nickname || member.user.username;
         
         // Check if user is already responding
         if (!responders.includes(userID)) {
             // Add to responders in database
             responders.push(userID);
-            request.responders = responders;
+            
+            // Store responders back to database - stringify if needed
+            if (typeof request.responders === 'string') {
+                request.responders = JSON.stringify(responders);
+            } else {
+                request.responders = responders;
+            }
+            
             request.status = 'responding';
             await request.save();
             
@@ -344,12 +367,29 @@ async function handleExternalRespondButton(interaction, member, requestId, exter
                     
                     // Update the external server message
                     const externalEmbed = externalMessage.embeds[0];
+                    
+                    // Get all responder names (nicknames if available)
+                    const allResponders = [];
+                    for (const responderId of responders) {
+                        try {
+                            const responderMember = await interaction.guild.members.fetch(responderId);
+                            if (responderMember) {
+                                allResponders.push(responderMember.nickname || responderMember.user.username);
+                            }
+                        } catch (error) {
+                            // If we can't fetch the member, at least show their ID as a fallback
+                            allResponders.push(`Unknown Member (${responderId})`);
+                        }
+                    }
+                    
+                    const respondersList = allResponders.join(', ');
+                    
                     const updatedExternalEmbed = EmbedBuilder.from(externalEmbed)
                         .setColor(0x0099FF)
                         .setTitle('Security Request Updated')
                         .addFields(
                             ...externalEmbed.fields.filter(field => field.name !== 'Status'),
-                            { name: 'Status', value: `Security personnel responding: ${member.user.tag}` }
+                            { name: 'Status', value: `Security personnel responding: ${respondersList}` }
                         );
                     
                     await externalMessage.edit({ embeds: [updatedExternalEmbed] });
@@ -812,13 +852,13 @@ module.exports = {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ConfigServer.html">CommandModules/ConfigServer</a></li><li><a href="module-CommandModules_ExternalRequest.html">CommandModules/ExternalRequest</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-ArcaniBot.html">ArcaniBot</a></li><li><a href="module-ArcaniBot_Core.html">ArcaniBot/Core</a></li><li><a href="module-CommandModules_ConfigServer.html">CommandModules/ConfigServer</a></li><li><a href="module-CommandModules_ExternalSecurityRequest.html">CommandModules/ExternalSecurityRequest</a></li><li><a href="module-CommandModules_ListExternalServers.html">CommandModules/ListExternalServers</a></li><li><a href="module-CommandModules_ManageCustomer.html">CommandModules/ManageCustomer</a></li><li><a href="module-CommandModules_RequestSecurity.html">CommandModules/RequestSecurity</a></li><li><a href="module-CommandModules_SetRequiredRoles.html">CommandModules/SetRequiredRoles</a></li><li><a href="module-CommandModules_SetupSecurityChannel.html">CommandModules/SetupSecurityChannel</a></li><li><a href="module-EventHandlers_InteractionCreate.html">EventHandlers/InteractionCreate</a></li><li><a href="module-EventHandlers_Ready.html">EventHandlers/Ready</a></li><li><a href="module-Utilities_DeployCommands.html">Utilities/DeployCommands</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-ArcaniBot-CommandModules.html">CommandModules</a></li><li><a href="module-ArcaniBot-EventHandlers.html">EventHandlers</a></li><li><a href="module-ArcaniBot-Utilities.html">Utilities</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Mon Apr 21 2025 23:59:27 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Tue Apr 22 2025 22:23:06 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

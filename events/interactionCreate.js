@@ -256,16 +256,39 @@ async function handleExternalRespondButton(interaction, member, requestId, exter
             return interaction.followUp({ content: 'Error processing request: Embed structure invalid.', flags: [64] });
         }
 
-        // Get current responders from the database
-        let responders = request.responders || [];
+        // Get current responders from the database - parse JSON if it's a string
+        let responders = [];
+        try {
+            // If responders is a string (JSON), parse it; otherwise use as is or default to empty array
+            if (typeof request.responders === 'string') {
+                responders = JSON.parse(request.responders || '[]');
+            } else if (Array.isArray(request.responders)) {
+                responders = request.responders;
+            }
+            console.log(`[Interaction ${interactionId}] Current responders:`, responders);
+        } catch (parseError) {
+            console.error(`[Interaction ${interactionId}] Error parsing responders:`, parseError);
+            responders = [];
+        }
+        
         const userMention = `${member.user}`;
         const userID = member.user.id;
+        
+        // Get the nickname of the security member, or fallback to their username if no nickname is set
+        const responderName = member.nickname || member.user.username;
         
         // Check if user is already responding
         if (!responders.includes(userID)) {
             // Add to responders in database
             responders.push(userID);
-            request.responders = responders;
+            
+            // Store responders back to database - stringify if needed
+            if (typeof request.responders === 'string') {
+                request.responders = JSON.stringify(responders);
+            } else {
+                request.responders = responders;
+            }
+            
             request.status = 'responding';
             await request.save();
             
@@ -316,12 +339,29 @@ async function handleExternalRespondButton(interaction, member, requestId, exter
                     
                     // Update the external server message
                     const externalEmbed = externalMessage.embeds[0];
+                    
+                    // Get all responder names (nicknames if available)
+                    const allResponders = [];
+                    for (const responderId of responders) {
+                        try {
+                            const responderMember = await interaction.guild.members.fetch(responderId);
+                            if (responderMember) {
+                                allResponders.push(responderMember.nickname || responderMember.user.username);
+                            }
+                        } catch (error) {
+                            // If we can't fetch the member, at least show their ID as a fallback
+                            allResponders.push(`Unknown Member (${responderId})`);
+                        }
+                    }
+                    
+                    const respondersList = allResponders.join(', ');
+                    
                     const updatedExternalEmbed = EmbedBuilder.from(externalEmbed)
                         .setColor(0x0099FF)
                         .setTitle('Security Request Updated')
                         .addFields(
                             ...externalEmbed.fields.filter(field => field.name !== 'Status'),
-                            { name: 'Status', value: `Security personnel responding: ${member.user.tag}` }
+                            { name: 'Status', value: `Security personnel responding: ${respondersList}` }
                         );
                     
                     await externalMessage.edit({ embeds: [updatedExternalEmbed] });

@@ -222,6 +222,7 @@ async function handleConcludeModalSubmit(interaction) {
  * // 2. The external server message is updated to show security is responding
  * // 3. The database entry is updated to track who is responding
  * await handleExternalRespondButton(interaction, member, '123456789012345678', '876543210987654321');
+ * @since 1.2.0 - Fixed updating external server with responder information
  */
 async function handleExternalRespondButton(interaction, member, requestId, externalGuildId) {
     const interactionId = interaction.id;

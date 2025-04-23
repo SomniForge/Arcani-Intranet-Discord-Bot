@@ -4,6 +4,8 @@
  * @description Main entry point for the Arcani Discord bot. Initializes the bot, 
  * sets up command and event handlers, runs database migrations, and establishes
  * automated server activity tracking through scheduled tasks.
+ * @version 1.2.0
+ * @since 1.0.0
  */
 
 // index.js

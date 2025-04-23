@@ -4,6 +4,8 @@
  * @description Utility functions for handling server configuration operations, including 
  * retrieving and updating role and channel settings for each server. These functions
  * support the dynamic configuration of the bot across multiple servers.
+ * @version 1.2.0
+ * @since 1.0.0
  */
 
 const { ServerConfig, sequelize } = require('./models');

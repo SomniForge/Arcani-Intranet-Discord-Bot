@@ -102,7 +102,7 @@ async function isServerManager(member) {
  * @returns {Promise<string|null>} The customer role ID, or null if not configured.
  */
 async function getCustomerRoleId(guildId) {
-    const config = await ServerConfig.findOne({ where: { guildId } });
+    const config = await ServerConfig.findOne({ where: { serverId: guildId } });
     return config?.customerRoleId || null;
 }
 
@@ -112,7 +112,7 @@ async function getCustomerRoleId(guildId) {
  * @returns {Promise<string|null>} The security role ID, or null if not configured.
  */
 async function getSecurityRoleId(guildId) {
-    const config = await ServerConfig.findOne({ where: { guildId } });
+    const config = await ServerConfig.findOne({ where: { serverId: guildId } });
     return config?.securityRoleId || null;
 }
 
@@ -122,7 +122,7 @@ async function getSecurityRoleId(guildId) {
  * @returns {Promise<string|null>} The alert channel ID, or null if not configured.
  */
 async function getAlertChannelId(guildId) {
-    const config = await ServerConfig.findOne({ where: { guildId } });
+    const config = await ServerConfig.findOne({ where: { serverId: guildId } });
     return config?.alertChannelId || null;
 }
 

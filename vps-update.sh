@@ -398,10 +398,11 @@ update() {
                         version="latest"
                     fi
                     
-                    # Format the commit messages in a way that the JS parser can identify them easily
-                    local formatted_changes=$(echo "$changes" | sed ':a;N;$!ba;s/\n/\\n/g')
+                    # Format the commit messages in a way that the JS parser can identify and format them easily
+                    # Each commit is on its own line, and JavaScript will convert them to bullet points
+                    local formatted_changes=$(echo "$changes" | tr '\n' '|' | sed 's/|/\\n/g')
                     
-                    # Create notification with changes
+                    # Create notification with changes in a format the JS code can easily parse
                     create_notification "Bot Updated to $version" "The bot has been updated with the following changes:\\n\\n$formatted_changes\\n\\nUpdate completed at $(date '+%Y-%m-%d %H:%M:%S')" "update" true
                 else
                     create_notification "Bot Updated" "The bot has been updated to the latest version." "update" true

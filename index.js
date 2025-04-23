@@ -19,7 +19,13 @@ const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 // Import database
 const { initializeDatabase } = require('./database/models');
 const { runMigrations } = require('./database/migrations');
-const { updateServerActiveStatus, INACTIVITY_THRESHOLD_DAYS } = require('./database/server-utils');
+const { updateServerActiveStatus, INACTIVITY_THRESHOLD_DAYS, sendSystemNotification } = require('./database/server-utils');
+
+/**
+ * Notification file path that the update script creates
+ * @type {string}
+ */
+const NOTIFICATION_FILE = path.join(__dirname, 'update_notification.json');
 
 /**
  * Represents the main Discord client.
@@ -91,6 +97,59 @@ for (const file of eventFiles) {
     console.log(`[INFO] Loaded event ${event.name}`);
 }
 
+/**
+ * Checks for update notifications from the update script and sends them through the bot
+ * @param {Client} client The Discord client
+ */
+async function checkForUpdateNotifications(client) {
+    try {
+        // Check if notification file exists
+        if (fs.existsSync(NOTIFICATION_FILE)) {
+            console.log('[INFO] Found update notification file, processing...');
+            
+            try {
+                // Read and parse the notification
+                const notificationData = JSON.parse(fs.readFileSync(NOTIFICATION_FILE, 'utf8'));
+                
+                // Delete the file first to prevent duplicate notifications
+                fs.unlinkSync(NOTIFICATION_FILE);
+                
+                // Determine notification type
+                const isUpdate = notificationData.type === 'update';
+                const isError = notificationData.type === 'error' || notificationData.type === 'maintenance';
+                const title = notificationData.title || (isUpdate ? '🔄 Bot Updated' : (isError ? '❌ Update Error' : '📢 System Notification'));
+                
+                // Send the notification
+                const result = await sendSystemNotification(
+                    client,
+                    notificationData.message,
+                    {
+                        isUpdate,
+                        isError,
+                        title
+                    }
+                );
+                
+                console.log(`[INFO] Sent update notification. Main server: ${result.mainSuccess ? '✅' : '❌'}, External servers: ${result.externalCount}`);
+                
+            } catch (parseError) {
+                console.error('[ERROR] Failed to parse update notification:', parseError);
+                // Delete the file if it's invalid to prevent repeated errors
+                try {
+                    fs.unlinkSync(NOTIFICATION_FILE);
+                } catch (unlinkError) {
+                    console.error('[ERROR] Failed to delete invalid notification file:', unlinkError);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('[ERROR] Error checking for update notifications:', error);
+    }
+    
+    // Schedule the next check
+    setTimeout(() => checkForUpdateNotifications(client), 60 * 1000); // Check every minute
+}
+
 // --- Setup Scheduled Tasks ---
 /**
  * Sets up recurring tasks like checking server activity
@@ -123,6 +182,9 @@ function setupScheduledTasks(client) {
         console.log(`[INFO] Initial server activity check will mark servers inactive if not used in ${INACTIVITY_THRESHOLD_DAYS} days`);
         updateServerActivity();
     }, ONE_HOUR);
+    
+    // Start checking for update notifications right away
+    checkForUpdateNotifications(client);
 }
 
 // Initialize the database before logging in

@@ -9,3 +9,6 @@
 
 # Local Database files
 *.sqlite
+
+# Local bash script for development
+updatelocaldev.sh

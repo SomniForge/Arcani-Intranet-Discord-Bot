@@ -132,6 +132,83 @@ database/arcani_bot.sqlite
 - **ExternalServer**: Stores external server configurations
 - **SecurityRequest**: Tracks all security requests and their status
 
+## Deployment and Updates
+
+### VPS Deployment
+
+The bot includes a comprehensive deployment script for use on VPS servers, making updates simple and safe.
+
+#### Setting Up the Update Script
+
+1. Upload the `vps-update.sh` script to your VPS
+2. Make it executable:
+   ```bash
+   chmod +x vps-update.sh
+   ```
+3. Configure the script variables at the top:
+   ```bash
+   BOT_DIR=""  # Update with your bot directory
+   WEBHOOK_URL=""  # Optional: Add your Discord webhook URL for notifications
+   ```
+
+#### Features
+
+The update script includes:
+
+- **Automatic Database Backup**: Creates backups before each update
+- **Discord Webhook Notifications**: Sends update status to a Discord channel (when configured)
+- **Automatic Rollback**: Reverts to the previous working state if an update fails
+- **Backup Rotation**: Maintains the last 7 backups and automatically removes older ones
+
+#### Using the Update Script
+
+To update your bot with the latest changes from GitHub:
+
+```bash
+./vps-update.sh
+```
+
+This will:
+
+1. Create a backup of your database and code
+2. Pull the latest changes from GitHub
+3. Install any new dependencies
+4. Restart the bot automatically
+
+#### Manual Rollback
+
+If you need to manually roll back to a previous version:
+
+1. List available backups:
+
+   ```bash
+   ls -l /home/austin/arcani-bot/Arcani-Discord-Bot/backups
+   ```
+
+2. Edit the script to call the restore function with your desired backup name:
+
+   ```bash
+   # Add to the bottom of the script before exit
+   restore_from_backup "arcani-bot_20250422_123456"
+   ```
+
+3. Run the script:
+   ```bash
+   ./vps-update.sh
+   ```
+
+#### Automating Updates
+
+To automatically check for updates daily, add a cron job:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add this line to check for updates at 3:00 AM daily
+0 3 * * * /home/austin/arcani-bot/Arcani-Discord-Bot/vps-update.sh
+```
+
 ## Development
 
 ### Project Structure

@@ -18,7 +18,7 @@ module.exports = {
      */
     data: new SlashCommandBuilder()
         .setName('request-external-security')
-        .setDescription('Request security assistance from Arcani Security')
+        .setDescription('Request security assistance from VIG Security')
         .addStringOption(option =>
             option.setName('location')
                 .setDescription('The location where security is needed.')
@@ -57,7 +57,7 @@ module.exports = {
         if (!mainGuildId || !alertChannelId || !securityRoleId) {
             console.error('Error: Missing required configuration in main server.');
             return interaction.reply({ 
-                content: 'The main security server is not fully configured. Please contact Arcani Security administrators.',
+                content: 'The main security server is not fully configured. Please contact VIG Security administrators.',
                 ephemeral: true 
             });
         }
@@ -119,7 +119,7 @@ module.exports = {
                     { name: 'Location', value: location },
                     { name: 'Details', value: details },
                     { name: 'Contact', value: contact },
-                    { name: 'Status', value: 'Your request has been sent to Arcani Security' }
+                    { name: 'Status', value: 'Your request has been sent to VIG Security' }
                 )
                 .setTimestamp()
                 .setFooter({ text: `Request ID: ${interaction.id}` });
@@ -128,13 +128,13 @@ module.exports = {
             const remoteEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setTitle('🚨 External Security Request 🚨')
-                .setAuthor({ name: `${requester.tag} from ${sourceGuild}`, iconURL: requester.displayAvatarURL() })
+                .setAuthor({ name: `${requester.tag || requester.username} from ${sourceGuild}`, iconURL: requester.displayAvatarURL() })
                 .addFields(
                     { name: 'Source Server', value: sourceGuild },
                     { name: 'Location', value: location },
                     { name: 'Details', value: details },
                     { name: 'Contact', value: contact },
-                    { name: 'Requester', value: `${requester.tag} (${requester.id})` },
+                    { name: 'Requester', value: `${requester.tag || requester.username} (${requester.id})` },
                     { name: 'Responding Security', value: 'None yet.' }
                 )
                 .setTimestamp()
@@ -172,44 +172,84 @@ module.exports = {
             if (!mainGuild) {
                 console.error(`Error: Could not find the main guild with ID ${mainGuildId}`);
                 await interaction.followUp({
-                    content: 'Failed to send your request to Arcani Security. Please contact them directly.',
+                    content: 'Failed to send your request to VIG Security. Please contact them directly.',
                     ephemeral: true
                 });
                 return;
             }
 
-            const alertChannel = await mainGuild.channels.fetch(alertChannelId);
-            if (!alertChannel) {
-                console.error(`Error: Could not find the alert channel with ID ${alertChannelId}`);
+            // Check if the bot is a member of the main guild
+            try {
+                await mainGuild.members.fetch(interaction.client.user.id);
+            } catch (error) {
+                console.error(`Bot is not a member of the main security guild: ${error.message}`);
                 await interaction.followUp({
-                    content: 'Failed to send your request to Arcani Security. Please contact them directly.',
+                    content: 'Security server configuration error: Bot is not a member of the main security server. Please contact your administrator.',
+                    ephemeral: true
+                });
+                return;
+            }
+
+            let alertChannel;
+            try {
+                alertChannel = await mainGuild.channels.fetch(alertChannelId);
+                if (!alertChannel) {
+                    throw new Error('Channel not found');
+                }
+                
+                // Verify bot has access to the channel
+                const botMember = await mainGuild.members.fetch(interaction.client.user.id);
+                const permissions = alertChannel.permissionsFor(botMember);
+                
+                if (!permissions.has('ViewChannel') || !permissions.has('SendMessages')) {
+                    throw new Error('Missing permissions in alert channel');
+                }
+            } catch (error) {
+                console.error(`Error accessing the alert channel: ${error.message}`);
+                await interaction.followUp({
+                    content: 'Failed to send your request to VIG Security. The bot does not have proper access to the security channel.',
                     ephemeral: true
                 });
                 return;
             }
 
             // Send the request to the security server
-            const securityMessage = await alertChannel.send({
-                content: `<@&${securityRoleId}> New security request from external server ${sourceGuild}!`,
-                embeds: [remoteEmbed],
-                components: [row]
-            });
+            let securityMessage;
+            try {
+                securityMessage = await alertChannel.send({
+                    content: `<@&${securityRoleId}> New security request from external server ${sourceGuild}!`,
+                    embeds: [remoteEmbed],
+                    components: [row]
+                });
+            } catch (error) {
+                console.error(`Error sending message to security channel: ${error.message}`);
+                await interaction.followUp({
+                    content: 'Failed to send your request to VIG Security due to a permissions issue. Please contact your security company administrator.',
+                    ephemeral: true
+                });
+                return;
+            }
 
             // Store the request in the database
-            await SecurityRequest.create({
-                requestId: interaction.id,
-                isExternal: true,
-                requesterId: requester.id,
-                requesterName: requester.tag,
-                location: location,
-                details: details,
-                contact: contact,
-                externalGuildId: interaction.guild.id,
-                externalMessageId: localMessage.id,
-                securityMessageId: securityMessage.id,
-                status: 'pending',
-                responders: []
-            });
+            try {
+                await SecurityRequest.create({
+                    requestId: interaction.id,
+                    isExternal: true,
+                    requesterId: requester.id,
+                    requesterName: requester.tag || requester.username,
+                    location: location,
+                    details: details,
+                    contact: contact,
+                    externalGuildId: interaction.guild.id,
+                    externalMessageId: localMessage.id,
+                    securityMessageId: securityMessage ? securityMessage.id : null,
+                    status: 'pending',
+                    responders: JSON.stringify([])  // Store as JSON string for SQLite compatibility
+                });
+            } catch (error) {
+                console.error(`Error storing security request in database: ${error.message}`);
+                // Continue execution - the request has been sent even if DB storage fails
+            }
 
             // Update the ephemeral reply
             await interaction.followUp({
@@ -219,10 +259,22 @@ module.exports = {
 
         } catch (error) {
             console.error(`Error sending external security request: ${error}`);
-            await interaction.followUp({
-                content: `Error sending your security request: ${error.message}`,
-                ephemeral: true
-            });
+            try {
+                // Check if the interaction has already been replied to
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({
+                        content: `Error sending your security request: ${error.message}`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `Error sending your security request: ${error.message}`,
+                        ephemeral: true
+                    });
+                }
+            } catch (replyError) {
+                console.error(`Failed to send error reply: ${replyError.message}`);
+            }
         }
     },
 };

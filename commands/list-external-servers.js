@@ -33,19 +33,33 @@ module.exports = {
      * @returns {Promise<void>}
      */
     async execute(interaction) {
+        await interaction.deferReply({ ephemeral: true });
+        
         const mainGuildId = process.env.GUILD_ID;
         
         // Check if this command is being used in the main security server
         if (interaction.guildId !== mainGuildId) {
-            return interaction.reply({
-                content: 'This command can only be used in the main security server.',
-                ephemeral: true
+            return interaction.editReply({
+                content: 'This command can only be used in the main security server.'
             });
         }
         
         const showInactive = interaction.options.getBoolean('show-inactive') || false;
         
         try {
+            // Get database table info to check column names
+            const tableInfo = await sequelize.query(
+                "PRAGMA table_info(security_requests);",
+                { type: sequelize.QueryTypes.SELECT }
+            );
+            
+            const columnNames = tableInfo.map(col => col.name);
+            console.log('Security request table columns:', columnNames);
+            
+            // Set the primary key column name based on what exists in the database
+            const requestIdColumn = columnNames.includes('requestId') ? 'requestId' : 
+                                  columnNames.includes('id') ? 'id' : 'interaction_id';
+            
             // Query for servers based on active status
             const whereClause = showInactive ? {} : { isActive: true };
             const externalServers = await ExternalServer.findAll({
@@ -54,23 +68,54 @@ module.exports = {
             });
             
             if (externalServers.length === 0) {
-                return interaction.reply({
-                    content: 'No external servers have been configured for security requests.',
-                    ephemeral: true
+                return interaction.editReply({
+                    content: 'No external servers have been configured for security requests.'
                 });
             }
             
-            // Get counts of active requests for each server
+            // Get counts of active requests for each server using the correct column name
             const serverIds = externalServers.map(server => server.guildId);
-            const activeRequestCounts = await SecurityRequest.findAll({
-                attributes: ['externalGuildId', [sequelize.fn('COUNT', sequelize.col('requestId')), 'count']],
-                where: {
-                    externalGuildId: { [Op.in]: serverIds },
-                    status: { [Op.ne]: 'concluded' }
-                },
-                group: ['externalGuildId'],
-                raw: true
-            });
+            
+            let activeRequestCounts;
+            try {
+                activeRequestCounts = await SecurityRequest.findAll({
+                    attributes: ['externalGuildId', [sequelize.fn('COUNT', sequelize.col(requestIdColumn)), 'count']],
+                    where: {
+                        externalGuildId: { [Op.in]: serverIds },
+                        status: { [Op.ne]: 'concluded' }
+                    },
+                    group: ['externalGuildId'],
+                    raw: true
+                });
+            } catch (error) {
+                console.error(`Error querying request counts: ${error.message}`);
+                
+                // Fallback: Try with a more direct approach if the column name is an issue
+                const counts = new Map();
+                try {
+                    const allRequests = await SecurityRequest.findAll({
+                        where: {
+                            externalGuildId: { [Op.in]: serverIds },
+                            status: { [Op.ne]: 'concluded' }
+                        },
+                        raw: true
+                    });
+                    
+                    // Manually count by server ID
+                    allRequests.forEach(request => {
+                        const guildId = request.externalGuildId;
+                        counts.set(guildId, (counts.get(guildId) || 0) + 1);
+                    });
+                    
+                    activeRequestCounts = Array.from(counts.entries()).map(([guildId, count]) => ({
+                        externalGuildId: guildId,
+                        count
+                    }));
+                } catch (fallbackError) {
+                    console.error(`Fallback count error: ${fallbackError.message}`);
+                    activeRequestCounts = []; // Use empty array if all attempts fail
+                }
+            }
             
             // Convert to a map for easy lookup
             const requestCountMap = new Map();
@@ -106,16 +151,14 @@ module.exports = {
                 });
             }
             
-            return interaction.reply({
-                embeds: [embed],
-                ephemeral: true
+            return interaction.editReply({
+                embeds: [embed]
             });
             
         } catch (error) {
             console.error(`Error listing external servers: ${error}`);
-            return interaction.reply({
-                content: `There was an error retrieving the server list: ${error.message}`,
-                ephemeral: true
+            return interaction.editReply({
+                content: `There was an error retrieving the server list: ${error.message}`
             });
         }
     },

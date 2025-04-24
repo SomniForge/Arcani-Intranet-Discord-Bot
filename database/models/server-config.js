@@ -18,7 +18,8 @@ const { DataTypes } = require('sequelize');
  *   managerRoleId: '234567890123456789',    // Role that can manage bot settings
  *   customerRoleId: '345678901234567890',   // Role for users who can request security
  *   securityRoleId: '456789012345678901',   // Role for security personnel
- *   alertChannelId: '567890123456789012'    // Channel for security alerts
+ *   alertChannelId: '567890123456789012',   // Channel for security alerts
+ *   blacklistRoleId: '678901234567890123'   // Role that can blacklist external servers
  * }
  */
 module.exports = (sequelize) => {
@@ -68,6 +69,15 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING,
             allowNull: true,
             comment: 'Channel ID for security alerts'
+        },
+        /**
+         * Role ID that can blacklist external servers
+         * @type {string}
+         */
+        blacklistRoleId: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Role ID that can blacklist external servers'
         }
     }, {
         timestamps: true

@@ -209,9 +209,89 @@ async function sendSystemNotification(client, message, options = {}) {
     }
 }
 
+/**
+ * Blacklists an external server
+ * @param {string} guildId - The Discord guild ID to blacklist
+ * @param {string} reason - The reason for blacklisting
+ * @returns {Promise<ExternalServer|null>} The updated server or null if not found
+ */
+async function blacklistServer(guildId, reason) {
+    try {
+        const server = await ExternalServer.findByPk(guildId);
+        if (!server) return null;
+        
+        server.isBlacklisted = true;
+        server.blacklistReason = reason || 'No reason provided';
+        await server.save();
+        return server;
+    } catch (error) {
+        console.error(`[ERROR] Failed to blacklist server ${guildId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Removes a server from the blacklist
+ * @param {string} guildId - The Discord guild ID to unblacklist
+ * @returns {Promise<ExternalServer|null>} The updated server or null if not found
+ */
+async function unblacklistServer(guildId) {
+    try {
+        const server = await ExternalServer.findByPk(guildId);
+        if (!server) return null;
+        
+        server.isBlacklisted = false;
+        server.blacklistReason = null;
+        await server.save();
+        return server;
+    } catch (error) {
+        console.error(`[ERROR] Failed to unblacklist server ${guildId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Get all blacklisted servers
+ * @returns {Promise<Array<ExternalServer>>} Array of blacklisted servers
+ */
+async function getBlacklistedServers() {
+    try {
+        return await ExternalServer.findAll({
+            where: { isBlacklisted: true }
+        });
+    } catch (error) {
+        console.error('[ERROR] Failed to get blacklisted servers:', error);
+        return [];
+    }
+}
+
+/**
+ * Check if a server is blacklisted
+ * @param {string} guildId - The Discord guild ID to check
+ * @returns {Promise<{isBlacklisted: boolean, reason: string|null}>} Blacklist status and reason
+ */
+async function checkServerBlacklist(guildId) {
+    try {
+        const server = await ExternalServer.findByPk(guildId);
+        if (!server) return { isBlacklisted: false, reason: null };
+        
+        return { 
+            isBlacklisted: server.isBlacklisted, 
+            reason: server.blacklistReason 
+        };
+    } catch (error) {
+        console.error(`[ERROR] Failed to check blacklist status for server ${guildId}:`, error);
+        return { isBlacklisted: false, reason: null };
+    }
+}
+
 module.exports = {
     updateServerActiveStatus,
     markServerActive,
     sendSystemNotification,
-    INACTIVITY_THRESHOLD_DAYS
+    INACTIVITY_THRESHOLD_DAYS,
+    blacklistServer,
+    unblacklistServer,
+    getBlacklistedServers,
+    checkServerBlacklist
 };

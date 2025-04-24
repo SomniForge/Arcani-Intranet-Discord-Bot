@@ -129,6 +129,54 @@ async function getAlertChannelId(guildId) {
 }
 
 /**
+ * Retrieves the blacklist role ID for a given guild.
+ * @param {string} guildId - The ID of the guild.
+ * @returns {Promise<string|null>} The blacklist role ID, or null if not configured.
+ */
+async function getBlacklistRoleId(guildId) {
+    const config = await ServerConfig.findOne({ where: { serverId: guildId } });
+    return config?.blacklistRoleId || null;
+}
+
+/**
+ * Set the blacklist role ID for a guild - only to be used by the server owner
+ * @param {string} guildId - The ID of the guild
+ * @param {string} roleId - The ID of the role that can blacklist servers
+ * @returns {Promise<ServerConfig>} The updated server configuration
+ */
+async function setBlacklistRole(guildId, roleId) {
+    return await updateServerConfig(guildId, { blacklistRoleId: roleId });
+}
+
+/**
+ * Check if a user has the blacklist role in a server
+ * @param {import('discord.js').GuildMember} member - The guild member to check
+ * @returns {Promise<boolean>} True if the user has the blacklist role or is the server owner
+ */
+async function canBlacklistServers(member) {
+    try {
+        // If the user is the server owner, they always have permission
+        if (member.id === member.guild.ownerId) {
+            return true;
+        }
+        
+        const config = await getServerConfig(member.guild.id);
+        
+        // If no blacklist role is set, only the server owner can blacklist
+        if (!config || !config.blacklistRoleId) {
+            return false; // Already checked for owner above
+        }
+        
+        // Check if the member has the blacklist role
+        return member.roles.cache.has(config.blacklistRoleId);
+    } catch (error) {
+        console.error(`[ERROR] Error checking blacklist role:`, error);
+        // Default to owner-only on error
+        return member.id === member.guild.ownerId;
+    }
+}
+
+/**
  * Check if a server has all required configuration
  * @param {string} serverId - The Discord server/guild ID
  * @returns {Promise<boolean>} True if the server has all required configuration
@@ -177,5 +225,8 @@ module.exports = {
     getSecurityRoleId,
     getAlertChannelId,
     hasRequiredConfig,
-    initializeServerConfig
+    initializeServerConfig,
+    getBlacklistRoleId,
+    setBlacklistRole,
+    canBlacklistServers
 };

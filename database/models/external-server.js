@@ -78,6 +78,26 @@ module.exports = (sequelize) => {
             allowNull: false
         },
         /**
+         * Whether the server is blacklisted.
+         * Blacklisted servers will not be able to request security services.
+         * Security company can blacklist servers that abuse the system.
+         * @type {boolean}
+         * @default false
+         */
+        isBlacklisted: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            allowNull: false
+        },
+        /**
+         * Reason for blacklisting the server, if applicable.
+         * @type {string}
+         */
+        blacklistReason: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        /**
          * Date when the server was last accessed.
          * Used for tracking activity and potentially for cleanup of dormant servers.
          * @type {Date}

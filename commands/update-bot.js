@@ -10,6 +10,9 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { sendSystemNotification } = require('../database/server-utils');
 
+// Developer ID - only this user can use update commands
+const DEV_USER_ID = '175919890589286400';
+
 module.exports = {
     /**
      * The slash command definition for the update-bot command
@@ -68,7 +71,15 @@ module.exports = {
      * // /update-bot version version:"1.2.0" changes:"Added security features, Fixed login bug, Updated dependencies"
      */
     async execute(interaction) {
-        // Only guild administrators can run this command
+        // Check if the user is the developer
+        if (interaction.user.id !== DEV_USER_ID) {
+            return interaction.reply({
+                content: 'Only the bot developer can use update commands.',
+                ephemeral: true
+            });
+        }
+        
+        // Also check for administrator permissions as a secondary requirement
         if (!interaction.memberPermissions.has(PermissionFlagsBits.Administrator)) {
             return interaction.reply({
                 content: 'You need administrator permissions to use this command.',

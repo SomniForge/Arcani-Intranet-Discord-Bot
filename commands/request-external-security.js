@@ -81,6 +81,14 @@ module.exports = {
                 });
             }
 
+            // Check if the server is blacklisted
+            if (externalServer.isBlacklisted) {
+                return interaction.reply({
+                    content: `⛔ This server has been blacklisted from using security services. Reason: ${externalServer.blacklistReason || 'No reason provided'}. If you believe this is in error, please contact VIG Security administrators.`,
+                    ephemeral: true
+                });
+            }
+
             // Check if the command is being used in the designated channel
             if (interaction.channelId !== externalServer.channelId) {
                 return interaction.reply({

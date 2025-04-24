@@ -20,7 +20,8 @@ const { QueryTypes, DataTypes } = require('sequelize');
 async function runMigrations() {
     const migrations = [
         migrateLastAccessed,
-        migrateServerConfigs
+        migrateServerConfigs,
+        migrateBlacklistColumns
     ];
     
     for (const migration of migrations) {
@@ -161,6 +162,95 @@ async function migrateServerConfigs() {
         // Log error but don't fail startup - we'll create configs when needed
         console.error('[ERROR] Migration warning (non-fatal):', error.message);
         console.log('[INFO] Will create server configs as needed during operation');
+    }
+}
+
+/**
+ * Migration to add blacklist columns to tables
+ * @returns {Promise<void>}
+ * @example
+ * // Add blacklist columns to tables
+ * await migrateBlacklistColumns();
+ */
+async function migrateBlacklistColumns() {
+    try {
+        console.log('[INFO] Running migration: Adding blacklist columns');
+        
+        // Get list of tables
+        const tableListQuery = await sequelize.query(
+            "SELECT name FROM sqlite_master WHERE type='table';",
+            { type: QueryTypes.SELECT }
+        );
+        
+        const tableNames = tableListQuery.map(result => result.name);
+        
+        // Step 1: Add blacklist_role_id to ServerConfigs
+        const serverConfigsTable = ['ServerConfigs', 'serverconfigs', 'server_configs', 'ServerConfig']
+            .find(name => tableNames.includes(name));
+            
+        if (serverConfigsTable) {
+            // Check if column exists
+            const serverConfigColumns = await sequelize.query(
+                `PRAGMA table_info(${serverConfigsTable});`,
+                { type: QueryTypes.SELECT }
+            );
+            
+            const hasBlacklistRoleId = serverConfigColumns.some(column => 
+                column.name === 'blacklistRoleId' || column.name === 'blacklist_role_id');
+                
+            if (!hasBlacklistRoleId) {
+                console.log(`[INFO] Adding blacklist_role_id column to ${serverConfigsTable}`);
+                await sequelize.query(
+                    `ALTER TABLE ${serverConfigsTable} ADD COLUMN blacklist_role_id TEXT;`
+                );
+                console.log('[INFO] Added blacklist_role_id column to ServerConfigs table');
+            } else {
+                console.log('[INFO] blacklist_role_id column already exists in ServerConfigs');
+            }
+        }
+        
+        // Step 2: Add blacklist columns to ExternalServers
+        const externalServersTable = ['ExternalServers', 'externalservers', 'external_servers', 'ExternalServer']
+            .find(name => tableNames.includes(name));
+            
+        if (externalServersTable) {
+            // Check if columns exist
+            const externalServerColumns = await sequelize.query(
+                `PRAGMA table_info(${externalServersTable});`,
+                { type: QueryTypes.SELECT }
+            );
+            
+            const hasIsBlacklisted = externalServerColumns.some(column => 
+                column.name === 'isBlacklisted' || column.name === 'is_blacklisted');
+                
+            if (!hasIsBlacklisted) {
+                console.log(`[INFO] Adding is_blacklisted column to ${externalServersTable}`);
+                await sequelize.query(
+                    `ALTER TABLE ${externalServersTable} ADD COLUMN is_blacklisted BOOLEAN DEFAULT 0;`
+                );
+                console.log('[INFO] Added is_blacklisted column to ExternalServers table');
+            } else {
+                console.log('[INFO] is_blacklisted column already exists in ExternalServers');
+            }
+            
+            const hasBlacklistReason = externalServerColumns.some(column => 
+                column.name === 'blacklistReason' || column.name === 'blacklist_reason');
+                
+            if (!hasBlacklistReason) {
+                console.log(`[INFO] Adding blacklist_reason column to ${externalServersTable}`);
+                await sequelize.query(
+                    `ALTER TABLE ${externalServersTable} ADD COLUMN blacklist_reason TEXT;`
+                );
+                console.log('[INFO] Added blacklist_reason column to ExternalServers table');
+            } else {
+                console.log('[INFO] blacklist_reason column already exists in ExternalServers');
+            }
+        }
+        
+        console.log('[INFO] Migration completed: Added blacklist columns');
+    } catch (error) {
+        console.error('[ERROR] Migration failed (blacklist columns):', error);
+        throw error;
     }
 }
 

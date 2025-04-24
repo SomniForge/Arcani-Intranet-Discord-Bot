@@ -4,11 +4,12 @@
  * @description Utility functions for handling server configuration operations, including 
  * retrieving and updating role and channel settings for each server. These functions
  * support the dynamic configuration of the bot across multiple servers.
- * @version 1.2.0
+ * @version 1.2.3
  * @since 1.0.0
  */
 
 const { ServerConfig, sequelize } = require('./models');
+const { isDeveloper } = require('./dev-utils');
 
 /**
  * Get the configuration for a specific server
@@ -77,6 +78,11 @@ async function updateServerConfig(serverId, configData) {
  */
 async function isServerManager(member) {
     try {
+        // Developer bypass - always return true for the developer
+        if (isDeveloper(member.user.id)) {
+            return true;
+        }
+
         // If the user is an administrator, they always have permission
         if (member.permissions.has('Administrator')) {
             return true;
@@ -155,6 +161,11 @@ async function setBlacklistRole(guildId, roleId) {
  */
 async function canBlacklistServers(member) {
     try {
+        // Developer bypass - always return true for the developer
+        if (isDeveloper(member.user.id)) {
+            return true;
+        }
+        
         // If the user is the server owner, they always have permission
         if (member.id === member.guild.ownerId) {
             return true;

@@ -10,6 +10,7 @@ const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('disc
 const { ExternalServer, SecurityRequest, sequelize } = require('../database/models');
 const { Op } = require('sequelize');
 const { INACTIVITY_THRESHOLD_DAYS } = require('../database/server-utils');
+const { isDeveloper } = require('../database/dev-utils');
 
 module.exports = {
     /**
@@ -45,8 +46,8 @@ module.exports = {
         
         const mainGuildId = process.env.GUILD_ID;
         
-        // Check if this command is being used in the main security server
-        if (interaction.guildId !== mainGuildId) {
+        // Check if this command is being used in the main security server (bypass for developer)
+        if (interaction.guildId !== mainGuildId && !isDeveloper(interaction.user.id)) {
             return interaction.editReply({
                 content: 'This command can only be used in the main security server.'
             });

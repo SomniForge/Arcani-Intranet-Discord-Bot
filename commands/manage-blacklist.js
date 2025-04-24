@@ -4,7 +4,7 @@
  * @description Allows authorized personnel to blacklist or unblacklist external servers
  * if they are misusing the security request system. Only users with the designated
  * blacklist role (or the server owner) can use this command.
- * @version 1.2.0
+ * @version 1.2.3
  * @since 1.2.0
  */
 
@@ -16,6 +16,7 @@ const {
 } = require('../database/server-utils');
 const { canBlacklistServers, getBlacklistRoleId } = require('../database/server-config-utils');
 const { ExternalServer } = require('../database/models');
+const { isDeveloper } = require('../database/dev-utils');
 
 module.exports = {
     /**
@@ -62,31 +63,33 @@ module.exports = {
      * // /manage-blacklist list
      */
     async execute(interaction) {
-        // Check if we're in the main security company server
+        // Check if we're in the main security company server (bypass for developer)
         const mainGuildId = process.env.GUILD_ID;
-        if (interaction.guild.id !== mainGuildId) {
+        if (interaction.guild.id !== mainGuildId && !isDeveloper(interaction.user.id)) {
             return interaction.reply({
                 content: 'This command can only be used in the main security company server.',
                 ephemeral: true
             });
         }
 
-        // Check if the user has permission to blacklist servers
-        const hasPermission = await canBlacklistServers(interaction.member);
-        if (!hasPermission) {
-            const blacklistRoleId = await getBlacklistRoleId(interaction.guild.id);
-            let message = 'You do not have permission to manage the server blacklist.';
-            
-            if (blacklistRoleId) {
-                message += ` Only the server owner and users with the <@&${blacklistRoleId}> role can use this command.`;
-            } else {
-                message += ' Only the server owner can use this command.';
+        // Check if the user has permission to blacklist servers (dev always has permission)
+        if (!isDeveloper(interaction.user.id)) {
+            const hasPermission = await canBlacklistServers(interaction.member);
+            if (!hasPermission) {
+                const blacklistRoleId = await getBlacklistRoleId(interaction.guild.id);
+                let message = 'You do not have permission to manage the server blacklist.';
+                
+                if (blacklistRoleId) {
+                    message += ` Only the server owner and users with the <@&${blacklistRoleId}> role can use this command.`;
+                } else {
+                    message += ' Only the server owner can use this command.';
+                }
+                
+                return interaction.reply({
+                    content: message,
+                    ephemeral: true
+                });
             }
-            
-            return interaction.reply({
-                content: message,
-                ephemeral: true
-            });
         }
 
         const subcommand = interaction.options.getSubcommand();

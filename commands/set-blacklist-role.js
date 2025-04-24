@@ -3,12 +3,13 @@
  * @module CommandModules/SetBlacklistRole
  * @description Command that allows the server owner to designate which role can blacklist external servers.
  * This is a critical security feature that restricts who can block external customer servers from using the bot.
- * @version 1.2.0
+ * @version 1.2.3
  * @since 1.2.0
  */
 
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { setBlacklistRole, getBlacklistRoleId } = require('../database/server-config-utils');
+const { isDeveloper } = require('../database/dev-utils');
 
 module.exports = {
     /**
@@ -33,17 +34,17 @@ module.exports = {
      * // /set-blacklist-role role:@SecurityManagers
      */
     async execute(interaction) {
-        // Check if the user is the server owner
-        if (interaction.user.id !== interaction.guild.ownerId) {
+        // Check if the user is the server owner or a developer
+        if (interaction.user.id !== interaction.guild.ownerId && !isDeveloper(interaction.user.id)) {
             return interaction.reply({
                 content: 'Only the server owner can set the blacklist role.',
                 ephemeral: true
             });
         }
         
-        // Check if we're in the main security company server
+        // Check if we're in the main security company server (bypass for developer)
         const mainGuildId = process.env.GUILD_ID;
-        if (interaction.guild.id !== mainGuildId) {
+        if (interaction.guild.id !== mainGuildId && !isDeveloper(interaction.user.id)) {
             return interaction.reply({
                 content: 'This command can only be used in the main security company server.',
                 ephemeral: true

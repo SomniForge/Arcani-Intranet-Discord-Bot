@@ -455,7 +455,7 @@ update() {
 }
 
 # Entry point
-log "🤖 Arcani Discord Bot VPS Updater v1.2.0"
+log "🤖 Arcani Discord Bot VPS Updater v1.2.3"
 update
 exit_code=$?
 

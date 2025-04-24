@@ -8,6 +8,7 @@
 
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { getServerConfig, updateServerConfig, isServerManager } = require('../database/server-config-utils');
+const { isDeveloper } = require('../database/dev-utils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -68,17 +69,17 @@ module.exports = {
         try {
             const mainGuildId = process.env.GUILD_ID;
             
-            // Check if this command is being used in a non-main server
-            if (interaction.guild.id !== mainGuildId) {
+            // Check if this command is being used in a non-main server (bypass for developer)
+            if (interaction.guild.id !== mainGuildId && !isDeveloper(interaction.user.id)) {
                 return interaction.reply({
                     content: 'This command can only be used in the main security company server.',
                     ephemeral: true
                 });
             }
             
-            // For all operations except setting the manager role, check if the user is a manager
+            // For all operations except setting the manager role, check if the user is a manager (bypass for developer)
             const subcommand = interaction.options.getSubcommand();
-            if (subcommand !== 'set-manager-role' && !(await isServerManager(interaction.member))) {
+            if (subcommand !== 'set-manager-role' && !isDeveloper(interaction.user.id) && !(await isServerManager(interaction.member))) {
                 return interaction.reply({
                     content: 'You do not have permission to use this command. Only server administrators or designated managers can configure server settings.',
                     ephemeral: true
@@ -90,8 +91,8 @@ module.exports = {
 
             switch (subcommand) {
                 case 'set-manager-role': {
-                    // Only server administrators can set the manager role
-                    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+                    // Only server administrators can set the manager role (bypass for developer)
+                    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator) && !isDeveloper(interaction.user.id)) {
                         return interaction.reply({
                             content: 'Only server administrators can set the manager role.',
                             ephemeral: true

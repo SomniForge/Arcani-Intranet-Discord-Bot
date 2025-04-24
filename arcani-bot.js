@@ -2,7 +2,7 @@
  * @file Overview of the Arcani Discord Bot
  * @author SomniForge
  * @copyright 2025
- * @version 1.0.0
+ * @version 1.2.3
  * 
  * @overview
  * This is the main documentation file for the Arcani Discord Bot.

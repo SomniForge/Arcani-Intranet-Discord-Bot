@@ -3,7 +3,7 @@
  * @module CommandModules/UpdateBot
  * @description Command that allows administrators to send update notifications to all configured servers
  * and provides a way to announce system updates with detailed changelogs.
- * @version 1.2.0
+ * @version 1.2.3
  * @since 1.0.0
  */
 
